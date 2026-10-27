@@ -1,0 +1,112 @@
+# ward-content-factory — настройки завода
+#
+# 🔴 Всё в фигурных скобках {{...}} — заглушки. Мастер настройки («настрой завод»,
+#    workflows/setup.md) найдёт каждую и скажет, чем заменить. Пока заглушка стоит —
+#    соответствующий шаг конвейера не запускается.
+# 🔴 Ключи и токены сюда НЕ пишем — только в config/secrets.yml (образец — secrets.example.yml).
+
+version: "1.0.0"
+updated: "2026-10-27"
+
+# ─────────────────────────────────────────────────────────
+# Teable — база, где живёт каждая единица контента
+# ─────────────────────────────────────────────────────────
+teable:
+  api_url: "{{TEABLE_API_URL}}"          # например https://app.teable.ai/api (с /api, без слэша в конце)
+  base_id: "{{TEABLE_BASE_ID}}"          # bse... — из адресной строки базы
+  page_size: 100                         # 🔴 Teable отдаёт максимум 100 записей за запрос — больше не ставить
+  tables:
+    units:       "{{TABLE_UNITS}}"       # «Единицы контента» (tbl...) — одна строка = одна пуля
+    adaptations: "{{TABLE_ADAPTATIONS}}" # «Адаптации» — одна строка = один формат пули под площадку
+    research:    "{{TABLE_RESEARCH}}"    # «Ward Factory maine» — база роликов-доноров (только чтение)
+    accounts:    "{{TABLE_ACCOUNTS}}"    # «Аккаунты» — база аккаунтов-доноров (только чтение)
+  # Таблица отобранных новостей parsing-ward. Оркестратор её ТОЛЬКО читает.
+  # Можно оставить заглушку — тогда команда «новые идеи из новостей» возьмёт ID
+  # из ../parsing-ward/config/settings.yml → teable.tables.selected.
+  news_selected: "{{TABLE_NEWS_SELECTED}}"
+
+# ─────────────────────────────────────────────────────────
+# Zernio — публикация (исполнитель zernio-posting)
+# ─────────────────────────────────────────────────────────
+zernio:
+  rest_api_base: "https://zernio.com/api/v1"
+  mcp_endpoint: "https://mcp.zernio.com/mcp"
+  profile_id: "{{ZERNIO_PROFILE_ID}}"
+  accounts:                              # accountId каждой площадки — из Zernio (accounts_list)
+    instagram: "{{ZERNIO_ACCOUNT_ID_INSTAGRAM}}"
+    threads:   "{{ZERNIO_ACCOUNT_ID_THREADS}}"
+    tiktok:    "{{ZERNIO_ACCOUNT_ID_TIKTOK}}"
+    youtube:   "{{ZERNIO_ACCOUNT_ID_YOUTUBE}}"   # необязательно: Shorts. Пусто/заглушка = Shorts не планируем
+
+# ─────────────────────────────────────────────────────────
+# HeyGen — видео с AI-аватарами
+# ─────────────────────────────────────────────────────────
+heygen:
+  api_base: "https://api.heygen.com"
+  dimension: { width: 1080, height: 1920 }   # 9:16
+  # ID аватаров и голосов — из HeyGen (Avatars → аватар → ID; Voices → голос → ID).
+  # Кто есть кто и под какие темы — knowledge/avatar_presets.md.
+  avatars:
+    babushka:
+      avatar_id: "{{HEYGEN_AVATAR_BABUSHKA}}"
+      voice_id:  "{{HEYGEN_VOICE_BABUSHKA}}"
+      avatar_type: "talking_photo"           # talking_photo (фото-аватар) | avatar (студийный аватар)
+    podcaster:
+      avatar_id: "{{HEYGEN_AVATAR_PODCASTER}}"
+      voice_id:  "{{HEYGEN_VOICE_PODCASTER}}"
+      avatar_type: "talking_photo"
+    cafe_girl:
+      avatar_id: "{{HEYGEN_AVATAR_CAFE_GIRL}}"
+      voice_id:  "{{HEYGEN_VOICE_CAFE_GIRL}}"
+      avatar_type: "talking_photo"
+    retro_trader:
+      avatar_id: "{{HEYGEN_AVATAR_RETRO_TRADER}}"
+      voice_id:  "{{HEYGEN_VOICE_RETRO_TRADER}}"
+      avatar_type: "talking_photo"
+  voice_speed: 1.0
+
+# ─────────────────────────────────────────────────────────
+# Higgsfield — визуал (MCP в Claude, ключ не здесь)
+# ─────────────────────────────────────────────────────────
+higgsfield:
+  image_model_default: "nano_banana_2"     # обложки, фоны, предметные кадры
+  image_model_text: "gpt_image"            # когда в кадре нужен читаемый текст
+  test_resolution: "1k"                    # тесты — 1k, чистовик — после «ок»
+  max_retries_per_image: 3                 # потом — звать человека
+  design_code: "../_ward/Дизайн-код Ward.md"
+
+# ─────────────────────────────────────────────────────────
+# Исполнители — где лежат соседние скиллы (относительно этой папки)
+# ─────────────────────────────────────────────────────────
+executors:
+  threads:  "../threads-writer"
+  scenario: "../eman-scenario"
+  carousel: "../carousel"
+  posting:  "../zernio-posting"
+  parsing:  "../parsing-ward"
+  brand:    "../_ward"
+
+# ─────────────────────────────────────────────────────────
+# Конвейер
+# ─────────────────────────────────────────────────────────
+pipeline:
+  week_default_bullets: 5          # «сделай контент на неделю» без числа
+  texts_batch_size: 5              # тексты: сколько пуль в одного субагента (threads-writer, eman-scenario)
+  carousels_per_agent: 1           # 🔴 карусели: строго 1 на субагента (правило изоляции carousel)
+  approve_bullets: true            # стоп-точка: показать пули человеку перед текстами
+  approve_before_schedule: true    # 🔴 стоп-точка: человек говорит «ок» после QC, до планирования
+  use_desktop_sessions: "ask"      # ask | yes | no — выносить тяжёлые этапы в отдельные чаты (только Claude Desktop)
+
+# Где хранить медиа: каждая пуля = подпапка «П-NN <коротко>/». Абсолютный путь на машине редактора.
+storage:
+  media_root: "{{MEDIA_ROOT_DIR}}"
+
+timezone: "Europe/Kyiv"
+# Сетка публикаций — knowledge/publishing_grid.md (числа ниже — источник правды для скрипта и планирования)
+grid:
+  tiktok:            { per_week: 7, times: ["19:00"] }
+  instagram_reels:   { per_week: 5, times: ["19:30"] }
+  youtube_shorts:    { per_week: 5, times: ["20:00"] }
+  threads:           { per_week: 10, times: ["09:30", "18:30"] }
+  instagram_carousel: { per_week: 3, times: ["12:30"], days: ["вт", "чт", "сб"] }
+  min_gap_same_bullet_hours: 24    # один смысл не публикуем на одной площадке чаще раза в сутки

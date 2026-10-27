@@ -1,0 +1,4 @@
+config/secrets.yml
+workspace/*
+!workspace/README.md
+scripts/__pycache__/

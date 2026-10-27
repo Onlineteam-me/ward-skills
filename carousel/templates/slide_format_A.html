@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<!--
+  HTML-шаблон для типографских слайдов карусели (справочный; основной рендер — scripts/render.py)
+  Использование: render-скрипт подставляет переменные через python f-string и
+  рендерит каждый слайд в PNG через headless Chrome (Playwright).
+
+  Поддерживаемые типы слайдов:
+    B — чистая типографика (hero + caption)
+    C — инсайт с #NN (insightNo + hero + caption)
+    D — формула/протокол (top-block + красная линия + bottom-block + caption)
+    F — финальный CTA (small-top + huge-letter + small-bottom + линия + handle-large)
+
+  Тип A (фото) и G (визуал) НЕ рендерятся через этот шаблон —
+  для них используется Higgsfield MCP (nano_banana_2). См. SKILL.md.
+  Шрифты подключены относительным путём ../materials/шрифты/ — открывать файл из папки templates/.
+-->
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Slide</title>
+<style>
+  /* === Локальные variable-шрифты (бесплатные, OFL) === */
+  @font-face {
+    font-family: 'Inter Var';
+    src: url('../materials/шрифты/Inter/Inter.ttf') format('truetype-variations');
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Onest Var';
+    src: url('../materials/шрифты/Onest/Onest.ttf') format('truetype-variations');
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Unbounded Var';
+    src: url('../materials/шрифты/Unbounded/Unbounded.ttf') format('truetype-variations');
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Manrope Var';
+    src: url('../materials/шрифты/Manrope/Manrope.ttf') format('truetype-variations');
+    font-weight: 200 800;
+    font-style: normal;
+  }
+
+  /* === Дизайн-система — синхронизирована с config/settings.yml === */
+  :root {
+    --cream: #F5F0E6;
+    --black: #1A1A1A;
+    --red:   #E63A1F;
+    --gray-caption: #555555;
+    --gray-chrome:  #787878;
+
+    --w: 1080px;
+    --h: 1350px;
+    --margin: 90px;
+    --caption-bottom-pad: 230px;
+    --caption-line-h: 50px;
+
+    --hero-letter-spacing: -0.02em;
+    --hero-line-height: 1.05;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: var(--w);
+    height: var(--h);
+    overflow: hidden;
+    font-family: "Onest Var", "Inter Var", "Helvetica Neue", "SF Pro Display", system-ui, sans-serif;
+    background: var(--cream);
+    color: var(--black);
+  }
+
+  .slide {
+    position: relative;
+    width: var(--w);
+    height: var(--h);
+    padding: 0;
+  }
+
+  /* === Хром (нумерация и ник в углах) === */
+  .counter, .handle {
+    position: absolute;
+    font-family: "Lato", "Helvetica Neue", sans-serif;
+    color: var(--gray-chrome);
+    font-weight: 700;
+  }
+  .counter { top: 50px; left: var(--margin); font-size: 24px; }
+  .handle  { bottom: 70px; left: var(--margin); font-size: 26px; }
+  .slide.no-handle .handle { display: none; }
+  .slide.light-chrome .counter, .slide.light-chrome .handle { color: #EBEBEB; }
+
+  /* === Hero — главный плакатный текст === */
+  .hero {
+    position: absolute;
+    left: var(--margin);
+    right: var(--margin);
+    text-align: center;
+    text-transform: uppercase;
+    font-family: "Helvetica Neue", "SF Pro Display", "Anton", "Bebas Neue", sans-serif;
+    font-weight: 900;
+    letter-spacing: var(--hero-letter-spacing);
+    line-height: var(--hero-line-height);
+    color: var(--black);
+  }
+  .hero .red { color: var(--red); }
+  .hero .black { color: var(--black); }
+
+  /* по умолчанию hero центрируем по вертикали; render-скрипт может выставить top явно */
+  .slide.type-B .hero,
+  .slide.type-C .hero {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* === Тип C — номер инсайта #NN === */
+  .insight-no {
+    position: absolute;
+    top: 220px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: "Helvetica Neue", "Anton", "Bebas Neue", sans-serif;
+    font-weight: 900;
+    font-size: 110px;
+    color: var(--red);
+    letter-spacing: var(--hero-letter-spacing);
+  }
+  .slide.type-C .hero {
+    top: 360px;
+    transform: none;
+  }
+
+  /* === Тип D — формула с красной линией === */
+  .slide.type-D .top-block,
+  .slide.type-D .bottom-block {
+    position: absolute;
+    left: var(--margin);
+    right: var(--margin);
+    text-align: center;
+    text-transform: uppercase;
+    font-family: "Helvetica Neue", "Anton", "Bebas Neue", sans-serif;
+    font-weight: 900;
+    letter-spacing: var(--hero-letter-spacing);
+    line-height: var(--hero-line-height);
+    font-size: 180px;
+  }
+  .slide.type-D .top-block { color: var(--black); top: 38%; transform: translateY(-50%); }
+  .slide.type-D .red-line {
+    position: absolute;
+    left: var(--margin);
+    right: var(--margin);
+    top: 50%;
+    height: 6px;
+    background: var(--red);
+    transform: translateY(-50%);
+  }
+  .slide.type-D .bottom-block { color: var(--red); top: 62%; transform: translateY(-50%); }
+
+  /* === Тип F — финальный CTA === */
+  .slide.type-F .small-top,
+  .slide.type-F .small-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: "Lato", "Inter", sans-serif;
+    font-weight: 500;
+    font-size: 38px;
+    color: var(--gray-caption);
+  }
+  .slide.type-F .huge-letter {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: "Helvetica Neue", "Anton", "Bebas Neue", sans-serif;
+    font-weight: 900;
+    font-size: 520px;
+    color: var(--red);
+    letter-spacing: var(--hero-letter-spacing);
+    line-height: 1;
+  }
+  .slide.type-F .red-line {
+    position: absolute;
+    left: var(--margin);
+    right: var(--margin);
+    height: 6px;
+    background: var(--red);
+  }
+  .slide.type-F .handle-large {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: "Helvetica Neue", "Anton", sans-serif;
+    font-weight: 900;
+    font-size: 140px;
+    color: var(--black);
+    letter-spacing: var(--hero-letter-spacing);
+  }
+
+  /* === Caption === */
+  .caption {
+    position: absolute;
+    left: var(--margin);
+    right: var(--margin);
+    bottom: var(--caption-bottom-pad);
+    text-align: center;
+    font-family: "Lato", "Inter", sans-serif;
+    font-weight: 500;
+    font-size: 40px;
+    line-height: 50px;
+    color: var(--gray-caption);
+    word-wrap: break-word;
+  }
+  .slide.type-F .caption,
+  .slide.no-caption .caption { display: none; }
+  .slide.light-chrome .caption { color: #EBEBEB; }
+
+  /* === Класс light-chrome для слайдов поверх фото (для типа A/E если рендеришь HTML) === */
+  .slide.with-photo {
+    background-size: cover;
+    background-position: center;
+  }
+  .slide.with-photo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+  }
+  .slide.with-photo .hero,
+  .slide.with-photo .caption { color: #FFF; z-index: 1; position: relative; }
+</style>
+</head>
+<body>
+
+<!--
+  Render-script подставит сюда нужный блок и переменные.
+  Шаблонные плейсхолдеры в стиле {{HERO_LINES}}, {{CAPTION}}, {{COUNTER}} —
+  их парсит render-скрипт.
+
+  Пример заполненного слайда типа B:
+  <div class="slide type-B">
+    <div class="counter">04 / 11</div>
+    <div class="hero" style="font-size: 220px;">
+      СТОП —<br>
+      <span class="red">ДО</span><br>
+      ВХОДА
+    </div>
+    <div class="caption">профи теряет мало и по плану.</div>
+    <div class="handle">{{НИК_АККАУНТА}}</div>
+  </div>
+-->
+
+<div class="slide {{TYPE_CLASS}}{{EXTRA_CLASSES}}"{{BG_STYLE}}>
+  <div class="counter">{{COUNTER}}</div>
+
+  {{INSIGHT_NO_BLOCK}}
+
+  {{HERO_BLOCK}}
+
+  {{TYPE_D_BLOCKS}}
+
+  {{TYPE_F_BLOCKS}}
+
+  <div class="caption">{{CAPTION}}</div>
+
+  <div class="handle">{{НИК_АККАУНТА}}</div>
+</div>
+
+</body>
+</html>

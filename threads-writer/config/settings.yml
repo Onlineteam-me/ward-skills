@@ -1,0 +1,93 @@
+# threads-writer — default settings
+
+defaults:
+  # 🔴 Количество = ПОТОЛОК, а не квота. Отдаём столько самодостаточных постов,
+  # сколько реально вытянул источник. Лучше меньше, но сильных. См. правило 0 в SKILL.md.
+  count_is_ceiling: true
+  posts_count_ceiling_short: 2   # короткая новость / 1 факт → максимум 2 (было 3)
+  posts_count_ceiling_longform: 3 # видео / лонгрид → максимум 3 (было 5)
+  # 🔴 Cutdown v1.5: на реальных прогонах 40% наборов имели по 6 постов = квота-режим.
+  # Вывод: 2-3 достаточно. Меньше = сильнее, каждый пост — самодостаточный.
+  mode: "ПЕРЕУПАКОВКА"          # дефолтный режим генерации
+  oversample_factor: 1.3        # черновиков чуть больше потолка (было 1.75 — перепроизводство дробило источник на осколки)
+
+post_format:
+  min_lines: 3
+  max_lines: 7
+  default_lines: 4               # ближе к 3-5
+  separator: "———"               # три em-dash между постами
+  use_markdown_inside: false     # никаких **жирных** в самих постах
+  hashtags: false                # хэштеги по умолчанию выкл
+  max_em_dashes_per_post: 0      # 🔴 ZERO в финале. Раньше было 2, теперь 0. См. ai_anti_patterns.md §12
+
+scoring:
+  scale_max: 5
+  axes:
+    - hook                       # сила первой строки
+    - tension                    # эмоция / curiosity gap
+    - clarity                    # понятно холодному читателю
+    - voice                      # звучит как автор
+    - reply_bait                 # есть ли зацепка для ответа (Threads-критично)
+    - shuffle_safety             # 🔴 сработает в одиночку, в рандомной ленте (atomic_posts.md)
+  min_sum_to_keep: 18             # из 30 максимум (6 осей × 5)
+  veto:                          # 🔴 эти провалы бракуют пост независимо от суммы
+    - standalone_context         # источник-сирота: безымянный субъект / число без хозяина (standalone_context.md)
+    - shuffle_safety_le_2         # опирается на соседние посты (≤2 балла по оси)
+
+anti_template:                   # 🆕 проверка разнообразия в наборе
+  max_same_hook_type: 2          # не больше 2 постов одного типа хука
+  max_same_length: 4             # не больше 4 постов одинаковой длины
+  max_same_ending_type: 4        # не больше 4 постов с одинаковым типом финала
+  length_mix: "30% <150 знаков / 40% средних / 30% 300-480"   # 🆕 16.10.2026, ai_anti_patterns §26
+  min_length_stdev: 60           # разброс длины в пачке, знаков
+  max_question_endings_share: 0.5
+  one_topic_one_post: true
+
+threads_native:                  # 🆕 формат-спецификация
+  lengths:
+    ultra_short: "1-2 предложения / 1-3 строки — самый виральный формат"
+    standard: "3-5 строк — базовый"
+    long: "6-7 строк — только если мысль реально требует"
+    forbidden: "эссе >7 строк — это LinkedIn, не Threads"
+  reply_bait_required: true       # каждый пост должен оставлять зацепку для ответа
+
+two_pass:
+  audit_always: true              # обязательный AI-аудит после черновика
+  hard_constraints:
+    - "длинное тире = 0 в финале (zero tolerance, таблица замен в §12)"
+    - "никакой ChatGPT-вежливости"
+    - "никакого сигналинга (давайте разберёмся)"
+
+transcription:
+  tool: "mlx-whisper"             # apple silicon, через uvx
+  model: "mlx-community/whisper-small-mlx"
+  language: "ru"
+  ffmpeg_resample: "16000:1"     # моно 16кГц
+
+links:
+  # 🔴 Ward: внешних ссылок в постах нет (красная линия ToV — против теневого бана).
+  # true — включает правила URL по типам постов из knowledge/post_types.md.
+  external_links_allowed: false
+
+brand:
+  name: "Ward"
+  cta: "Подпишись, чтобы не потерять"     # канонический призыв (этап запуска)
+  address: "ты"
+  language: "ru"                          # контент на русском (ToV Ward)
+  currency: ["$", "USDT"]
+  disclaimer: "Не финансовая рекомендация" # ставить по решению пользователя
+  dna_full: "../_ward/ДНК клиента — новички.md"
+  tov_full: "../_ward/Голос бренда Ward (ToV).md"
+
+forbidden:
+  - "рубли (₽ / руб) — только $ или USDT"
+  - "суммы-обещания, «заработал за N дней», «без риска», «гарантированно», «пассивный доход»"
+  - "слова «заработок / доход / быстрые деньги» в тексте поста (теневой бан)"
+  - "названия конкурентов, брокеров и бирж"
+  - "внешние ссылки (пока links.external_links_allowed: false)"
+  - "выдуманные цифры — только из источника"
+  - "длинное тире как декорация в больших количествах"
+
+paths:
+  master: "~/.claude/skills/threads-writer/SKILL.md"   # или путь к папке пакета, если подключено симлинком
+  command_sync: "~/.claude/commands/threads-writer.md"

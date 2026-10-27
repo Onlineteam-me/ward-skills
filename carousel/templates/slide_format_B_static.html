@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Format B — Static</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* === Static slide for format B (Higgsfield + HTML hybrid, no animation) === */
+  /* Render via Playwright: viewport 1080x1350, device_scale_factor 1 */
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1350px;
+    background: #EFEAE0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  .frame {
+    position: relative;
+    width: 1080px;
+    height: 1350px;
+    background:
+      linear-gradient(#CFC4A8 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, #CFC4A8 1px, transparent 1px) 0 0 / 40px 40px,
+      #EFEAE0;
+  }
+
+  /* Bookmark — top left */
+  .bookmark {
+    position: absolute;
+    top: 0;
+    left: 80px;
+    width: 80px;
+    height: 130px;
+    background: #E85A2C;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  }
+
+  /* Counter NN/TT — top left, after bookmark */
+  .counter {
+    position: absolute;
+    top: 50px;
+    left: 200px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 28px;
+    color: #1A1A1A;
+    padding-right: 8px;
+    z-index: 6;
+  }
+
+  /* Header — number + title + tagline */
+  .header {
+    position: absolute;
+    top: 200px;
+    left: 80px;
+    right: 80px;
+  }
+  .num {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 130px;
+    line-height: 130px;
+    color: #E85A2C;
+    letter-spacing: -4px;
+  }
+  .title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 84px;
+    line-height: 1.05;
+    color: #1A1A1A;
+    margin-top: 20px;
+    letter-spacing: -2px;
+  }
+  .tagline {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 32px;
+    color: #1A1A1A;
+    margin-top: 30px;
+    opacity: 0.75;
+  }
+
+  /* Card — dark block with content */
+  .card {
+    position: absolute;
+    left: 80px;
+    right: 80px;
+    bottom: 230px;
+    background: #0A0A0A;
+    border-radius: 24px;
+    padding: 50px 60px;
+    box-shadow: 0 20px 60px rgba(232, 90, 44, 0.25);
+    color: #EFEAE0;
+  }
+  .card-row {
+    display: flex;
+    gap: 20px;
+    align-items: baseline;
+    margin-bottom: 22px;
+    font-family: 'Inter', sans-serif;
+  }
+  .card-row:last-child { margin-bottom: 0; }
+  .card-label {
+    font-weight: 700;
+    font-size: 24px;
+    color: #E85A2C;
+    min-width: 140px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card-value {
+    font-weight: 600;
+    font-size: 28px;
+    color: #EFEAE0;
+    line-height: 1.4;
+  }
+
+  /* Footer + Nick */
+  .footer {
+    position: absolute;
+    bottom: 80px;
+    left: 80px;
+    right: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-family: 'Inter', sans-serif;
+  }
+  .nick {
+    font-weight: 800;
+    font-size: 28px;
+    color: #1A1A1A;
+    letter-spacing: 1px;
+  }
+  .arrow {
+    font-weight: 900;
+    font-size: 60px;
+    color: #E85A2C;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="bookmark"></div>
+  <div class="counter">01/12</div>
+
+  <div class="header">
+    <div class="num">#1</div>
+    <div class="title">HEADLINE GOES HERE</div>
+    <div class="tagline">подзаголовок-tagline</div>
+  </div>
+
+  <div class="card">
+    <div class="card-row">
+      <div class="card-label">Желание</div>
+      <div class="card-value">первая строка значения</div>
+    </div>
+    <div class="card-row">
+      <div class="card-label">Страх</div>
+      <div class="card-value">вторая строка значения</div>
+    </div>
+    <div class="card-row">
+      <div class="card-label">Бренды</div>
+      <div class="card-value">третья строка значения</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="nick">{{НИК_АККАУНТА}}</div>
+    <div class="arrow">→</div>
+  </div>
+</div>
+</body>
+</html>

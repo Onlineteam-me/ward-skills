@@ -1,0 +1,60 @@
+# parsing-ward — параметры по умолчанию. Источник правды для скриптов.
+# Секреты (токен) — в config/secrets.yml (в .gitignore) или в env TEABLE_API_TOKEN.
+# 🔴 Перед первым запуском заменить ВСЕ заглушки {{...}} на реальные значения.
+#    Скрипты остановятся с понятной ошибкой, если заглушка осталась.
+#    Какие таблицы и поля создать в Teable — knowledge/pipeline_architecture.md.
+
+teable:
+  base_id: "{{TEABLE_BASE_ID}}"                 # ID базы Teable (bse...)
+  base_url: "{{TEABLE_API_URL}}"                # например https://app.teable.io/api или https://<ваш-сервер>/api
+  tables:
+    sources:        "{{TEABLE_TABLE_SOURCES}}"        # Источники (реестр фидов)
+    selected:       "{{TEABLE_TABLE_SELECTED}}"       # Отобранные новости (поверхность утверждения)
+    rejected:       "{{TEABLE_TABLE_REJECTED}}"       # Отсеяно (калибровка)
+    content_units:  "{{TEABLE_TABLE_CONTENT_UNITS}}"  # Единицы контента (продакшн всех форматов)
+    publications:   "{{TEABLE_TABLE_PUBLICATIONS}}"   # Публикации (финальная витрина, для zernio-posting)
+  selected_view:      "{{TEABLE_VIEW_SELECTED}}"       # Grid view «Отобранных», сортировка «Дата парсинга» ↓
+  content_units_view: "{{TEABLE_VIEW_CONTENT_UNITS}}"  # Grid view «Единиц контента» — сортировка ID desc, новые записи ставим наверх
+
+# Окно свежести и объём
+fetch:
+  # 🔴 Окно ОБЯЗАНО перекрывать паузу между прогонами, иначе часть недели невидима.
+  # Расписание пн+пт: пт→пн = 72ч, пн→пт = 96ч. Берём 96ч + запас на сдвиг запуска.
+  # Если перейдёте на ежедневный прогон (для формулы Ф2 «N минут назад» свежесть важнее) — ставьте 30.
+  freshness_hours: 100         # брать материалы не старше N часов
+  max_per_source: 6            # сколько свежих позиций тянуть с одного источника
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+  # Сайты, которые рисуются JavaScript-ом: скрипт их пропускает, модель добирает через WebSearch.
+  js_sites: ["coinglass.com", "binance.com", "bybit.com", "okx.com"]
+
+# Отбор
+scoring:
+  write_threshold: 7           # в «Отобранные новости» пишем оценку >= этого
+  reject_examples: 3           # сколько низких примеров класть в «Отсеяно» для калибровки (0 = не писать)
+  min_rows: 8                  # контроль качества: меньше — значит плохо просмотрел
+
+# Расписание (для scheduled-tasks): понедельник и пятница, 11:00 по Киеву.
+# Источник правды — задача планировщика. Здесь дублируется для справки.
+schedule:
+  task_id: "parsing-ward-mon-fri"
+  cron: "0 11 * * 1,5"
+  timezone: "Europe/Kyiv"
+
+# Формат ID: YYYYMMDD + 3-значный счётчик за день
+id_format: "date_counter"
+
+# Рекомендация — допустимые форматы (синхронно с полем в Teable)
+formats: ["Карусель", "Тред", "Статья", "Видео (сам)", "Видео (аватар)"]
+
+# Хранилище исходников — только локально
+storage:
+  # Локальный корень медиа: каждая единица = подпапка «{Название} {ID}/». Абсолютный путь.
+  local_root: "{{CONTENT_FACTORY_DIR}}"
+  # Куда backup.py складывает дампы таблиц. Пусто = workspace/_teable_backups внутри скилла.
+  backups_dir: ""
+
+# Публикация через Zernio (scripts/schedule_batch.py). Ключ Zernio — env ZERNIO_API_KEY
+# или zernio-posting/config/secrets.yml.
+zernio:
+  instagram_account_id: "{{ZERNIO_ACCOUNT_ID_INSTAGRAM}}"
+  api_url: "https://zernio.com/api/v1"

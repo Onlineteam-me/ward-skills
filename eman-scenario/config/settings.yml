@@ -1,0 +1,74 @@
+# eman-scenario skill — default settings
+
+method:
+  source: "Иман Гаджи (Eman Gadzhi)"
+  basis: "деконструкция ~17 транскриптов роликов"
+
+# Платформы и хронометраж — детали в knowledge/script_structure.md
+platforms:
+  youtube_long:
+    duration: "8-15 мин"
+    structure: full           # хук → контекст → развёрнутый листикл → mid-roll → финал
+  shorts_reels:
+    duration: "30-60 сек"
+    structure: compressed     # хук (0-3с) + 1 фреймворк + 1 полярное утверждение + CTA
+  tiktok:
+    duration: "30-90 сек"
+    structure: compressed
+
+# Структурные блоки long-формата (тайминги)
+blocks_long:
+  hook_promise: "0:00-1:00"
+  context_disclaimer: "1:00-2:00"
+  listicle: "основная часть"
+  midroll_integration: "в середине"
+  outro_cta: "финал"
+
+# Матрица авторитета — 5 блоков, фундамент (knowledge/authority_matrix.md)
+authority_matrix:
+  - block_1: "Деконструкция и общий враг (антитезис ниши)"
+  - block_2: "Парадокс уязвимого авторитета (Extreme Flex + Deep Vulnerability)"
+  - block_3: "Премиальный IP (ребрендинг смыслов в авторские фреймворки)"
+  - block_4: "Жизненный протокол (интеграция в лайфстайл)"
+  - block_5: "Воронка с нулевым трением (Frictionless CTA)"
+
+# Стили хука (knowledge/hook_formulas.md)
+hook_styles:
+  command: "командный заход + резкая правда"
+  pain: "удар в боль/желание зрителя"
+  authority_contrast: "мгновенный авторитет через контраст результат/возраст"
+  promise: "чёткое обещание ценности (N принципов/способов)"
+
+defaults:
+  platform: shorts_reels     # основной формат Ward
+  voice: heygen_avatar       # heygen_avatar | live
+  listicle_items: 7          # ориентир, не догма
+  hook_variants: 5           # сколько хуков выдавать на апрув
+
+rules:
+  no_fake_facts: true        # реальные цифры/истории только от пользователя → плейсхолдеры
+  cold_reader: true          # сценарий для зрителя, не знающего тему
+  no_rubles: true
+  no_em_dash_for_tts: true   # всегда: ролики Ward озвучивает AI-аватар (HeyGen)
+  numbers_as_words: true     # в репликах числа словами
+  ward_filter: true          # knowledge/ward_filter.md на каждом сценарии
+  vulnerability_required: true
+  approve_hook_before_script: true
+
+output:
+  format: markdown
+  folder: "Сценарии Эман/<название>/"   # относительно рабочей папки; поменяй под себя
+  avatar_text_block: true    # чистый блок «Текст для аватара» в конце сценария
+
+# Бренд — фильтр Ward (детали в knowledge/ward_filter.md, источник — ../_ward/)
+brand:
+  name: "Ward"
+  positioning: "профессия без глянца"
+  language: "ru"
+  authority: "честность + журнал + процесс (без роскоши и сумм)"
+  cta: "Подпишись, чтобы не потерять"
+  disclaimer: "Не финансовая рекомендация"
+  currency: ["$", "USDT"]
+  banned_on_screen: ["заработок", "доход", "быстрые деньги"]
+  banned_claims: ["без риска", "гарантированно", "пассивный доход", "разгон депозита"]
+  name_competitors: false

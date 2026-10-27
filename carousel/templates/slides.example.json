@@ -1,0 +1,49 @@
+{
+  "_help": "Пример slides.json для scripts/render.py. Каталог макетов и поля — knowledge/slide_layouts.md. Модель пишет ТАКОЙ файл, НЕ Python. Ник берётся из config/settings.yml → brand.nickname (или поле \"nick\" здесь).",
+  "title": "5_mifov_novichka",
+  "format": "A",
+  "total": 10,
+  "chrome": { "bookmark": false, "arrow": false, "grid": false },
+  "slides": [
+    { "n": 1, "layout": "cover-photo", "slug": "cover", "photo": "auto",
+      "kicker": "МИФЫ", "hero": ["5 мифов,", "из-за которых", {"t": "новичок сливает депозит", "accent": true}] },
+
+    { "n": 2, "layout": "poster", "slug": "context",
+      "hero": ["Трейдинг — не поиск стратегии.", {"t": "Это работа с риском", "accent": true}],
+      "caption": "↓ 5 мифов — и что вместо них" },
+
+    { "n": 3, "layout": "photo-overlay", "slug": "mif1", "photo": "auto",
+      "title": ["Миф 1.", {"t": "Есть стратегия без минусов", "accent": true}],
+      "body": "Минусы есть у всех. Профи теряет мало и по плану." },
+
+    { "n": 4, "layout": "insight", "slug": "insight", "insight_no": "02",
+      "hero": ["График — что было.", {"t": "Стакан — кто стоит сейчас", "accent": true}],
+      "caption": "скальпер смотрит туда, где реально стоят заявки" },
+
+    { "n": 5, "layout": "stat", "slug": "stat", "big": "~2", "unit": "года",
+      "body": "средний путь от нуля до уверенной торговли" },
+
+    { "n": 6, "layout": "video-bg", "slug": "video", "video": "auto",
+      "kicker": "МИФ 3",
+      "hero": ["Маленький депозит —", {"t": "это тренажёр", "accent": true}],
+      "body": "а не лотерейный билет. Первые месяцы цель — не слить." },
+
+    { "n": 7, "layout": "list", "slug": "checklist", "kicker": "ЧЕК-ЛИСТ",
+      "hero": ["Перед первой", {"t": "сделкой", "accent": true}],
+      "items": [
+        { "label": "Стоп", "value": "знаешь, где выходишь в минус" },
+        { "label": "Объём", "value": "минимальный — пока учишься" },
+        { "label": "Журнал", "value": "записываешь каждую сделку" }
+      ] },
+
+    { "n": 8, "layout": "formula", "slug": "shift", "kicker": "СДВИГ",
+      "top_block": "Угадывать цену", "bottom_block": "Работать с механикой",
+      "caption": "игрок гадает — трейдер использует механику рынка" },
+
+    { "n": 9, "layout": "quote", "slug": "quote", "dark": true,
+      "quote": "Трейдинг становится казино, когда в нём нет стопов, статистики и плана",
+      "source": "Ward" },
+
+    { "n": 10, "layout": "cta" }
+  ]
+}

@@ -1,0 +1,80 @@
+# carousel skill — default settings
+
+model:
+  generation: nano_banana_2          # фотореалистичные слайды
+  default_resolution: 1k             # этого достаточно для IG
+  # nano_banana_2 НЕ поддерживает параметр quality, не передавать
+
+formats:
+  A: brand-personality               # «бренд личности» — фото автора/лица бренда + видео-фон + типографика
+  B: higgsfield-html-hybrid          # гибрид: обложка B1 (Higgsfield) или B2 (скриншот) + HTML
+  C: newsjacking                     # «ньюсджекинг» — рецепт: формат A + слайд-источник B2
+
+# Формат A: визуальные слоты (фото/видео) — детерминированная таблица в knowledge/visual_dna_format_A.md
+# Формат B: два вида обложки — B1 Higgsfield-визуал / B2 скриншот-источник (build_cover.md)
+# Формат C: новость от себя = скелет A (фото) + слайд-источник B2 — knowledge/format_C_recipe.md
+
+visuals:
+  # Источники правды — готовые JSON-индексы. НЕ сканировать медиа заново, НЕ переописывать каждый раз.
+  # Скилл просто читает индекс и выбирает по полям-тегам.
+  photos_dir: "materials/фото_автора/"                         # 🟡 ЗАГЛУШКА: фото автора/лица бренда (см. README.md в папке). Пусто → обложка без фото + предупреждение
+  photos_index: "materials/фото_автора/photos_index.json"      # необязательный индекс (поля: filename, format, outfit_set, mood…). Нет индекса → берутся все JPG/PNG папки
+  video_bg_index: "materials/video_bg/video_bg_index.json"     # 🟡 ЗАГЛУШКА: клипов пока 0. Пусто → карусель без видео + предупреждение
+  # Индекс фото необязателен; если ведёшь его — обновляй только при добавлении/удалении фото, НЕ перед каждым рендером.
+  # Формат A — фото-центричный «бренд личности». Под лимит 10 слайдов:
+  selection: random                    # 🎲 фото выбираются СЛУЧАЙНО (каруселей много → так не повторяются)
+  cover_pool: "format == vertical"     # обложка = рандом ТОЛЬКО среди вертикальных (горизонталка ломает 4:5)
+  no_repeat_within_carousel: true      # один кадр = один раз в карусели (random.sample)
+  randomizer: shell                    # рандомить через python random в shell, НЕ «на глаз» (LLM плохо рандомит)
+  slide_1: photo                       # обложка = всегда фото
+  slide_last_cta: subscribe            # слайд 10 = всегда «Подпишись, чтобы не потерять» (layout cta, правило 4)
+  video_per_carousel: 1                # РОВНО 1 видео-слот на карусель (случайный клип), не больше
+  cadence: "визуальный слот каждые 2-3 контентных слайда"
+  # Точная раскладка слотов по числу слайдов — таблица в visual_dna_format_A.md
+
+slide_count:
+  # 🔴 Жёсткий лимит API соцсетей на автопостинг = 10 слайдов. SKILL.md правила 1 и 4.
+  hard_max: 10                         # никогда не превышать
+  content: 9                           # 9 контентных слайдов
+  cta: 1                               # +1 финальный слайд «Подпишись, чтобы не потерять» = 10/10
+  short: 7                             # компактнее, если контента мало (+ CTA = 8 итого, заполнить 1-2 буфером не надо)
+
+final_cta:
+  # Слайд 10 = всегда финальный слайд Ward (правило 4 в SKILL.md). Верстается движком render.py (layout "cta").
+  slide_text: "Подпишись, чтобы не потерять"
+  caption_line: "Подпишись, чтобы не потерять."
+  disclaimer: "Не финансовая рекомендация."
+  source: "materials/финальный_слайд.md"
+
+iteration_limits:
+  higgsfield_max_retries: 3
+  call_user_after_failures: 3
+
+safety:
+  max_image_dimension_px: 2000
+  max_png_reads_per_batch: 5
+  resize_command: "sips -Z 2000 <file>"
+  test_quality_first: true           # чистовик только после апрува
+
+env:
+  # Фиксированный путь к Python с установленным playwright (системный python3 = 3.14 БЕЗ playwright).
+  # БАГ 6: не угадывать — использовать ИМЕННО этот venv для render.py и screenshot_url.py.
+  python_with_playwright: "{{PYTHON_С_PLAYWRIGHT}}"   # например "~/.venvs/carousel/bin/python" — см. README.md → «Установка»
+  exiftool_install: "brew install exiftool"   # для порядка карусели на iPhone (см. workflows/handover.md)
+
+brand:
+  nickname: "{{НИК_АККАУНТА}}"          # Instagram-аккаунт бренда, например "@ward.cap" — печатается на каждом слайде
+  primary_orange: "#E85A2C"
+  cream_bg: "#EFEAE0"
+  dark_card: "#0A0A0A"
+  grid_color: "#CFC4A8"
+  fonts:
+    headline: "Inter (900)"
+    body: "Inter (600-700)"
+    mono: "JetBrains Mono"
+
+output:
+  size: "1080x1350"                  # IG carousel native
+  format: jpeg                       # JPEG q=88: 10 слайдов ~1MB (PNG = 5MB → тяжело для автопостинга)
+  jpeg_quality: 88                   # визуально идентично PNG, но в 5-10x легче
+  device_scale_factor: 1

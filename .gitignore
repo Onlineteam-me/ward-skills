@@ -1,0 +1,19 @@
+**/config/secrets.yml
+**/.env
+**/__pycache__/
+**/.venv/
+.DS_Store
+**/.DS_Store
+*.pyc
+# медиа клиента не храним в репозитории
+*.mp4
+*.mov
+*.MOV
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.pdf
+parsing-ward/workspace/*
+!parsing-ward/workspace/README.md

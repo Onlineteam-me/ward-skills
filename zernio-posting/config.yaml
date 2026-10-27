@@ -1,0 +1,161 @@
+# /zernio-posting — конфигурация
+# Все ID, пути и правила в ОДНОМ месте. SKILL.md и workflows читают отсюда.
+# 🔴 Секреты (API-ключи, токены) сюда НЕ пишем — только в config/secrets.yml (образец: config/secrets.example.yml).
+# 🔴 Всё, что в фигурных скобках {{...}}, — заглушки. Заменить на свои значения перед первым запуском (см. README.md).
+
+version: "0.9.0"
+updated: "2026-10-27"
+
+# ─────────────────────────────────────────────────────────
+# Zernio MCP
+# ─────────────────────────────────────────────────────────
+zernio:
+  mcp_endpoint: "https://mcp.zernio.com/mcp"
+  dashboard: "https://zernio.com"
+  api_key: null   # 🔴 читать из config/secrets.yml → zernio_api_key (или env ZERNIO_API_KEY)
+  rest_api_base: "https://zernio.com/api/v1"
+  profile_id: "{{ZERNIO_PROFILE_ID}}"          # Zernio → профиль (Default или свой)
+  accounts:
+    instagram:
+      username: "{{INSTAGRAM_USERNAME}}"        # ник Instagram Ward без @
+      account_id: "{{ZERNIO_ACCOUNT_ID_INSTAGRAM}}"   # из accounts_list
+    threads:
+      username: "{{THREADS_USERNAME}}"          # ник Threads Ward без @
+      account_id: "{{ZERNIO_ACCOUNT_ID_THREADS}}"     # из accounts_list
+
+# ─────────────────────────────────────────────────────────
+# Teable
+# ─────────────────────────────────────────────────────────
+teable:
+  base_url: "{{TEABLE_URL}}"        # например https://app.teable.ai (без слэша в конце)
+  api_token: null                   # 🔴 читать из config/secrets.yml → teable_api_token (или env TEABLE_API_TOKEN)
+  base_id: "{{TEABLE_BASE_ID}}"
+  tables:
+    publications: "{{TABLE_PUBLICATIONS}}"     # «Публикации» (путь A). У Ward можно направить на «Адаптации» — см. README
+    content_units: "{{TABLE_CONTENT_UNITS}}"   # «Единицы контента» (путь B)
+    channels: "{{TABLE_CHANNELS}}"             # «Каналы» (необязательно; если нет — оставить заглушку, поле «Канал» не трогаем)
+
+  # Поля «Единицы контента» — для триггера «возьми готовый контент из юнита и опубликуй» (путь B).
+  # Слева — внутренний ключ (не менять), справа — ID поля в ВАШЕЙ таблице.
+  # Имена полей в запросах — см. content_unit_field_names ниже.
+  content_unit_fields:
+    koncept:               "{{FLD_UNIT_CONCEPT}}"       # Концепт / название юнита (у Ward — «Пуля»)
+    status:                "{{FLD_UNIT_STATUS}}"        # Статус (singleSelect)
+    formaty:               "{{FLD_UNIT_FORMATS}}"       # Форматы (multipleSelect: Карусель / Тред / ...)
+    id_number:             "{{FLD_UNIT_ID}}"            # Числовой ID юнита (у Ward — «№»)
+    podpis_k_karuseli:     "{{FLD_UNIT_CAROUSEL_TEXT}}" # Подпись к карусели (longText) — текст для IG
+    tred:                  "{{FLD_UNIT_THREADS_TEXT}}"  # Тред (longText) — текст для Threads
+    papka_unit:            "{{FLD_UNIT_MEDIA_FOLDER}}"  # «Папка с медиа» — ЛОКАЛЬНЫЙ путь к папке со слайдами/видео
+    post_insta:            "{{FLD_UNIT_POST_INSTA}}"    # Post Insta (singleSelect: Опубликован / Не опубликован)
+    threads_post:          "{{FLD_UNIT_THREADS_POST}}"  # Threads пост (singleSelect: Опубликован / Не опубликован)
+
+  # Имена полей «Единицы контента», как они называются в ВАШЕЙ таблице (запросы идут с fieldKeyType=name).
+  # Справа — значения по умолчанию из методики. Если у вас поле называется иначе — поменяйте здесь.
+  content_unit_field_names:
+    koncept:           "Концепт"            # Ward: «Пуля»
+    status:            "Статус"
+    formaty:           "Форматы"            # Ward: «Формат»
+    id_number:         "ID"                 # Ward: «№»
+    podpis_k_karuseli: "Подпись к карусели" # Ward: «Текст карусели»
+    tred:              "Тред"               # Ward: «Threads-посты»
+    papka_unit:        "Папка с медиа"      # Ward: создать поле (singleLineText)
+    post_insta:        "Post Insta"         # Ward: создать поле (singleSelect)
+    threads_post:      "Threads пост"       # Ward: создать поле (singleSelect)
+
+  # Допустимые значения для per-format статусов в «Единицы контента»
+  content_unit_format_status_values:
+    - "Опубликован"
+    - "Не опубликован"
+  # Значение «Статус» строки, которое означает «можно публиковать» (у Ward в «Единицах контента» — «Готово»)
+  content_unit_ready_status: "Принято"
+  # Значение «Статус», которое означает «вернуть на доработку» — такие строки НЕ публикуем
+  content_unit_rework_status: "На правки"
+
+  # ID полей таблицы «Публикации» (путь A, для PATCH/POST)
+  # Полная схема: knowledge/teable_schema.md
+  fields:
+    tema:               "{{FLD_PUB_TOPIC}}"          # Тема (primary)
+    status:             "{{FLD_PUB_STATUS}}"         # Статус (singleSelect)
+    format:             "{{FLD_PUB_FORMAT}}"         # Формат (multi-select)
+    zagolovok:          "{{FLD_PUB_TITLE}}"          # Заголовок
+    tekst:              "{{FLD_PUB_TEXT}}"           # Текст (longText) — caption для IG
+    media:              "{{FLD_PUB_MEDIA}}"          # Медиа (attachments)
+    kanal:              "{{FLD_PUB_CHANNEL}}"        # Канал (link) — необязательно
+    kogda:              "{{FLD_PUB_SCHEDULED_AT}}"   # Когда публикуем (datetime)
+    ssylki:             "{{FLD_PUB_LINKS}}"          # Ссылки на публикации
+    papka:              "{{FLD_PUB_MEDIA_FOLDER}}"   # Папка с медиа (локальный путь)
+    edinica_kontenta:   "{{FLD_PUB_CONTENT_UNIT}}"   # Единица контента (link) — необязательно
+    kommentariy:        "{{FLD_PUB_COMMENT}}"        # Комментарий
+    treds:              "{{FLD_PUB_THREADS_TEXT}}"   # Тредс (longText, текст для Threads)
+    status_threads:     "{{FLD_PUB_THREADS_STATUS}}" # Статус Threads (singleSelect)
+  # Допустимые значения статусов и форматов (путь A)
+  status_values:
+    - "К утверждению"
+    - "Утвердить"
+    - "К публикации"
+    - "Опубликовано"     # ← устанавливаем после успешной публикации
+    - "На доработку"
+  format_values:
+    - "Карусель"
+    - "Рилс"
+    - "Пост"
+    - "Статья"
+    - "Тредс"
+    - "Сторис"
+
+# ─────────────────────────────────────────────────────────
+# Локальные пути
+# ─────────────────────────────────────────────────────────
+local:
+  # Корень локального архива опубликованного контента.
+  # Пример: "~/Ward/Контент завод база контента". Скилл создаст подпапки сам (mkdir -p).
+  archive_root: "{{ARCHIVE_ROOT}}"
+  archive_by_type:
+    carousel: "Карусели"
+    reel:     "Рилсы"
+    threads:  "Тредс-посты"
+  # Где обычно лежат готовые, ещё не опубликованные исходники (подсказки «где искать»).
+  # Пусто — значит скилл спросит путь у пользователя.
+  source_hints: []
+    # - "{{READY_CONTENT_DIR}}"   # например папка, куда скилл carousel кладёт готовые слайды
+
+# ─────────────────────────────────────────────────────────
+# Правила постинга (defaults)
+# ─────────────────────────────────────────────────────────
+posting:
+  # Минимальный интервал между постами на одном аккаунте (часы).
+  # Перед расписанием/постингом проверяю posts_list и предупреждаю при конфликте.
+  min_interval_hours_ig: 3
+  min_interval_hours_threads: 2
+  # Threads-текст постится сразу по умолчанию
+  threads_default_mode: "publish_now"
+  # IG форматы — спрашивать слот
+  ig_default_mode: "ask_slot"
+  # Buffer от текущего момента при scheduled_for
+  scheduled_buffer_min: 5
+  # Часовой пояс для расписания (поменяйте, если команда работает в другом поясе)
+  timezone: "Europe/Kyiv"
+
+# ─────────────────────────────────────────────────────────
+# Проверка подписи перед публикацией (голос Ward) — knowledge/ward_brand_check.md
+# ─────────────────────────────────────────────────────────
+brand_check:
+  enabled: true
+  cta: "Подпишись, чтобы не потерять"
+  disclaimer: "Не финансовая рекомендация"
+
+# ─────────────────────────────────────────────────────────
+# Лимиты Meta API (для валидации перед отправкой)
+# ─────────────────────────────────────────────────────────
+limits:
+  instagram:
+    carousel_max_slides: 10        # через API (in-app 20)
+    posts_per_day: 50
+    caption_max_chars: 2200
+  threads:
+    carousel_max_slides: 20
+    post_max_chars: 500
+  media:
+    image_max_mb: 4
+    video_max_mb: 4                # безопасный лимит для IG
+    upload_request_max_mb: 4.5     # Vercel ограничение Zernio upload-endpoint

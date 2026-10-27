@@ -1,0 +1,15 @@
+{
+  "_schema": {
+    "file": "имя mp4 в materials/video_bg/",
+    "thumb": "превью в .thumbs/",
+    "duration": "длина клипа в секундах",
+    "mood": "настроение: dynamic | calm | focused | bold | warm | cold",
+    "scene": "сцена: talking_head | b_roll | abstract | texture | city | nature | workspace | hands",
+    "has_person": "есть ли человек в кадре (true/false)",
+    "dominant_color": "доминирующий цвет фона",
+    "recommended_for": "типы слайдов: thesis | turn | mechanic | emotional | stat | intro | any",
+    "tags": "произвольные ключевые слова"
+  },
+  "_note": "ЗАГЛУШКА: клипов пока нет. Добавь mp4 через scripts/process_video_bg.py и опиши их здесь (см. README.md).",
+  "clips": []
+}

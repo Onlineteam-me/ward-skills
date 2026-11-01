@@ -22,14 +22,14 @@ from pathlib import Path
 
 def _skill_dir() -> str:
     """Где лежит скилл: $CAROUSEL_SKILL_DIR → папка выше этого файла (если запущен из scripts/)
-    → ~/.claude/skills/carousel (стандартная установка; файл скопирован в рабочую папку)."""
+    → ~/.claude/skills/carousel-ward (стандартная установка; файл скопирован в рабочую папку)."""
     env = os.environ.get("CAROUSEL_SKILL_DIR")
     if env:
         return os.path.expanduser(env)
     here = Path(__file__).resolve().parent.parent
     if (here / "scripts" / "render.py").exists():
         return str(here)
-    return os.path.expanduser("~/.claude/skills/carousel")
+    return os.path.expanduser("~/.claude/skills/carousel-ward")
 
 
 SKILL_DIR  = _skill_dir()
@@ -102,7 +102,7 @@ def make_slides_json(c: dict) -> dict:
         "title": c["name"],
         "total": 10,
         "photos_dir": PHOTOS_DIR,
-        "chrome": {"bookmark": False, "arrow": False, "grid": False},
+        "chrome": {"arrow": False},
         "slides": c["slides"]
     }
 

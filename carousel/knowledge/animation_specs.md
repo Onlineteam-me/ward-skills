@@ -13,7 +13,7 @@
 | Элемент | Эффект | Тайминг | Откуда |
 |---|---|---|---|
 | **Bookmark** | stampIn rotate −30°→0° + scale 0→1 | 0.4s @ 0.2s | v4 |
-| **Counter** "NN/16" | fadeIn, JetBrains Mono | 0.3s @ 0.2s | базовый |
+| **Counter** "NN/16" | fadeIn, Montserrat | 0.3s @ 0.2s | базовый |
 | **Header** (номер + название + tagline) | maskReveal по диагонали 135° | **0.5s @ 0.1s** | v4 |
 | **Number** (#1...#12) | num-roll slot-machine, останавливается на финальной + glow pulse | **1.0s @ 0.25s** | v3 |
 | **Logos** (фото в центре) | Ken Burns scale 1.0→1.12 + translate, infinite alternate | 8s @ 0.7s | v2 |
@@ -29,7 +29,7 @@
 ```
 0.0  — старт
 0.1  — header maskReveal (название появляется почти сразу)
-0.2  — bookmark stamps in / counter fades in
+0.2  — логотип и counter fade in
 0.25 — number начинает прокрутку
 0.7  — logos появляются + Ken Burns стартует
 1.0  — nick charStagger

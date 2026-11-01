@@ -40,7 +40,7 @@
 ├── build_*.py
 ├── slides.json              ← контент-файл для scripts/render.py
 ├── html/                    ← все HTML-исходники для Playwright
-├── stas_preview/            ← превью фото для выбора
+├── photo_preview/           ← превью фото для выбора
 ├── _cover_work/             ← временные ресайз-копии для Higgsfield
 └── *_test_*.png, *_temp_*   ← любые временные файлы
 ```
@@ -63,7 +63,7 @@ mkdir -p черновики
 # переместить всё кроме финала и подписи
 mv *_raw.png *_A.png *_B.png *_C.png *_D.png \
    generate_*.py build_*.py slides.json \
-   html stas_preview _cover_work \
+   html photo_preview _cover_work \
    черновики/ 2>/dev/null
 ```
 

@@ -78,7 +78,7 @@ EOF
 
 ```bash
 # Скопируй шаблон в рабочую папку, задай OUTPUT_ROOT и заполни CAROUSELS
-cp ~/.claude/skills/carousel/scripts/create_batch.py ./batch_$(date +%Y%m%d).py
+cp ~/.claude/skills/carousel-ward/scripts/create_batch.py ./batch_$(date +%Y%m%d).py
 # ... отредактируй ...
 python3 ./batch_$(date +%Y%m%d).py
 ```
@@ -105,7 +105,7 @@ python3 ./batch_$(date +%Y%m%d).py
 
 ```bash
 VENV="<python с playwright из config/settings.yml>"
-RENDER="$HOME/.claude/skills/carousel/scripts/render.py"
+RENDER="$HOME/.claude/skills/carousel-ward/scripts/render.py"
 ROOT="<папка готовых каруселей>"
 
 for name in carousel_01 carousel_02 carousel_03; do

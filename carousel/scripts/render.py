@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-render.py — ЕДИНЫЙ рендер-движок скилла carousel (чистовик v1, 2026-06-02; адаптация Ward).
+render.py — ЕДИНЫЙ рендер-движок скилла carousel-ward (дизайн-код Ward, 2026-11-01).
 
 Заменяет «модель пишет Python каждый раз». Модель готовит slides.json — этот скрипт рендерит.
-Все правила дизайн-системы зашиты ЗДЕСЬ (источник: knowledge/slide_layouts.md):
-  • один шрифт Inter, единый оранжевый #E85A2C (не красный)
-  • объект/фото — edge-to-edge, объект сливается с кремом (НЕ плашка)
-  • line-height ≥1.05, зазор заголовок→body ≥32px, мин. размеры шрифтов
-  • сетка по умолчанию ВЫКЛ (чистый крем); счётчик/ник/опц. закладка-стрелка
-  • CTA (слайд 10) — финальный слайд «Подпишись, чтобы не потерять» (layout "cta"),
+Все правила дизайн-системы зашиты ЗДЕСЬ (источники: _ward/Дизайн-код Ward.md, knowledge/slide_layouts.md):
+  • только Montserrat, плотный трекинг; чёрный фон + Emerald #15C865; темы black / green / white
+  • логотип накладывается ИЗ ФАЙЛА (_ward/логотип/), нейросетью не генерируется
+  • скругления 24–40 px, ярлыки-пилюли, один акцент на кадр
+  • фон-картинка из Higgsfield (поле "bg") либо заглушка-градиент бренда ("bg":"placeholder")
+  • line-height ≥1.05, зазор заголовок→body ≥32px; заголовок сам ужимается по ширине кадра
+  • CTA — финальный слайд «Подпишись, чтобы не потерять» (layout "cta"),
     верстается движком, текст — materials/финальный_слайд.md
-  • пустые медиа-папки (фото автора, видео-фоны) — НЕ падение, а предупреждение + фолбэк
+  • проверка текста на красные линии Ward — предупреждения в консоль
+  • пустые медиа-папки (фото, видео-фоны) — НЕ падение, а предупреждение + фолбэк
 
-Запуск (через venv с playwright):
-    python3 render.py <slides.json> <output_dir>
+Запуск (через Python с playwright из config/settings.yml → env.python_with_playwright):
+    python render.py <slides.json> <output_dir>
 
 Схема slides.json и каталог макетов: knowledge/slide_layouts.md
 """
@@ -24,69 +26,164 @@ from playwright.async_api import async_playwright
 
 # --- пути ---
 SKILL = Path(__file__).resolve().parent.parent
-INTER = SKILL / "materials/шрифты/Inter/Inter.ttf"
+FONTS_DIR = SKILL / "materials/шрифты/Montserrat"
+LOGO_DIR = SKILL.parent / "_ward" / "логотип"
 PHOTOS_DIR_DEFAULT = SKILL / "materials" / "фото_автора"   # заглушка: см. README.md в папке
 SETTINGS = SKILL / "config" / "settings.yml"
 IMG_EXT = (".jpg", ".jpeg", ".png")
 
 def load_nickname():
     """Ник аккаунта для слайдов — из config/settings.yml → brand.nickname.
-    Без PyYAML: простой regex. Если там ещё заглушка {{...}} — громкое предупреждение."""
-    nick = "{{НИК_АККАУНТА}}"
+    Без PyYAML: простой regex. Пока там заглушка {{...}} — ник на слайды не печатается."""
+    nick = ""
     try:
         m = re.search(r'^\s*nickname:\s*"([^"]+)"', SETTINGS.read_text(encoding="utf-8"), re.M)
         if m: nick = m.group(1)
     except Exception:
         pass
-    if "{{" in nick:
-        print(f"⚠ ник аккаунта не настроен ({nick}) — впиши его в config/settings.yml → brand.nickname "
-              f"(например @ward.cap) или задай \"nick\" в slides.json")
+    if not nick or "{{" in nick:
+        print("⚠ ник аккаунта не настроен — слайды без ника. Впиши его в config/settings.yml → "
+              "brand.nickname или задай \"nick\" в slides.json")
+        return ""
     return nick
 
 DEFAULT_NICK = None   # заполняется в main()
 
 def nick_of(s):
-    return s.get("nick") or DEFAULT_NICK or "{{НИК_АККАУНТА}}"
+    return s.get("nick") or DEFAULT_NICK or ""
 
-# --- токены дизайн-системы ---
-CREAM="#EFEAE0"; BLACK="#1A1A1A"; ORANGE="#E85A2C"; GRAY="#555555"; CHROME="#787878"; GRID="#CFC4A8"; CARD="#0A0A0A"
+# --- токены дизайн-кода Ward ---
+BLACK="#000000"; WHITE="#FFFFFF"; EMERALD="#15C865"; DIM="#656565"; SLATE="#738290"; DEEP="#0B3D22"
+THEMES=("black","green","white")
 
 def b64_file(path, mime):
     return f"data:{mime};base64," + base64.b64encode(Path(path).read_bytes()).decode()
 
-INTER_B64 = b64_file(INTER, "font/ttf")
+def font_links():
+    """Montserrat: локальный файл из materials/шрифты/Montserrat/, иначе Google Fonts при рендере.
+    Без шрифта рендер не идёт — проверка в assert_font()."""
+    files=sorted(FONTS_DIR.glob("*.ttf"))+sorted(FONTS_DIR.glob("*.woff2")) if FONTS_DIR.exists() else []
+    if files:
+        fmt="woff2" if files[0].suffix==".woff2" else "truetype"
+        src=b64_file(files[0], "font/"+files[0].suffix[1:])
+        return f"<style>@font-face{{font-family:'Montserrat';src:url('{src}') format('{fmt}');font-weight:100 900;}}</style>"
+    print("⚠ локального Montserrat нет (materials/шрифты/Montserrat/) — беру с Google Fonts, нужен интернет")
+    return ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+            'family=Montserrat:wght@400;500;600;700&display=block&subset=cyrillic">')
+
+FONT_LINKS = font_links()
+
+_logos={}
+def logo_of(color):
+    """Логотип только из файла. Файла нет → без логотипа + предупреждение (генерировать нельзя)."""
+    if color not in _logos:
+        p=LOGO_DIR/f"WARD_logo_{color}.png"
+        if p.exists():
+            _logos[color]=b64_file(p,"image/png")
+        else:
+            print(f"⚠ нет файла логотипа {p} — слайд без логотипа")
+            _logos[color]=None
+    return _logos[color]
+
+def top_chrome(counter, color):
+    src=logo_of(color)
+    img=f'<img class="logo" src="{src}" alt="WARD">' if src else ""
+    return f'<div class="top">{img}<div class="counter">{counter}</div></div>'
+
+GRAIN=("url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E"
+       "%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E"
+       "%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E"
+       "%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E\")")
+
+GLOW_AT={"tr":"100% 0%","tl":"0% 0%","br":"100% 100%","bl":"0% 100%"}
+def placeholder_bg(s):
+    """Заглушка на месте картинки Higgsfield: градиент бренда + зерно (дизайн-код, раздел 1)."""
+    at=GLOW_AT.get(s.get("glow","tr"),"100% 0%")
+    print(f"🟡 слайд {s['n']}: фон-заглушка (градиент бренда) — заменить картинкой Higgsfield перед публикацией")
+    return (f'<div class="photo" style="background:radial-gradient(115% 80% at {at},'
+            f'rgba(21,200,101,.9) 0%,{DEEP} 44%,{BLACK} 80%)"></div>'
+            f'<div class="photo" style="background-image:{GRAIN};opacity:.09"></div>')
 
 # --- BASE CSS (литералы, без f-string) ---
 BASE_CSS = """
-@font-face { font-family:'Inter'; src:url('__INTER__') format('truetype-variations'); font-weight:100 900; }
 * { margin:0; padding:0; box-sizing:border-box; }
-html,body { width:1080px; height:1350px; overflow:hidden; font-family:'Inter',sans-serif; }
-.slide { position:relative; width:1080px; height:1350px; background:__CREAM__; color:__BLACK__; overflow:hidden; }
-.grid { position:absolute; inset:0; opacity:.32; pointer-events:none;
-  background:linear-gradient(__GRID__ 1px,transparent 1px) 0 0/40px 40px,
-            linear-gradient(90deg,__GRID__ 1px,transparent 1px) 0 0/40px 40px; }
-.bookmark { position:absolute; top:0; left:80px; width:46px; height:74px; background:__ORANGE__; z-index:6;
-  clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%); }
-.counter { position:absolute; top:48px; left:150px; font-weight:800; font-size:26px; color:__BLACK__; letter-spacing:2px; z-index:6; }
-.counter.nobm { left:90px; }
-.nick { position:absolute; bottom:64px; left:90px; font-size:26px; font-weight:800; color:__CHROME__; z-index:6; }
-.arrow { position:absolute; bottom:60px; right:80px; font-size:54px; color:__ORANGE__; font-weight:700; z-index:6; }
-.light .counter { color:#fff; } .light .nick { color:#EBEBEB; }
-.kicker { font-weight:800; font-size:24px; letter-spacing:4px; color:__ORANGE__; text-transform:uppercase; }
-.hero { font-weight:900; line-height:1.05; letter-spacing:-1.5px; }
-.hero .acc { color:__ORANGE__; }
-.body { font-weight:600; line-height:1.25; margin-top:36px; }
-.cap  { font-weight:500; line-height:1.3; color:__GRAY__; }
+html,body { width:1080px; height:1350px; overflow:hidden; font-family:'Montserrat',sans-serif; }
+.slide { --bg:#000000; --fg:#FFFFFF; --acc:#15C865; --chrome:#738290; --card:rgba(115,130,144,.16); --line:rgba(115,130,144,.3);
+  position:relative; width:1080px; height:1350px; background:var(--bg); color:var(--fg); overflow:hidden; }
+.slide.t-green { --bg:#15C865; --fg:#000000; --acc:#000000; --chrome:#0B3D22; --card:rgba(0,0,0,.12); --line:rgba(0,0,0,.25); }
+.slide.t-white { --bg:#FFFFFF; --fg:#000000; --acc:#15C865; --chrome:#656565; --card:rgba(115,130,144,.14); }
+.slide.light { --chrome:#FFFFFF; }
+.top { position:absolute; top:60px; left:90px; display:flex; align-items:center; gap:36px; z-index:6; }
+.logo { height:34px; width:auto; display:block; }
+.counter { font-weight:600; font-size:24px; color:var(--chrome); font-variant-numeric:tabular-nums; }
+.nick { position:absolute; bottom:64px; left:90px; font-size:24px; font-weight:500; color:var(--chrome); z-index:6; }
+.arrow { position:absolute; bottom:56px; right:80px; font-size:54px; color:var(--acc); font-weight:600; z-index:6; }
+.kicker { display:inline-block; padding:10px 26px; border-radius:999px; background:var(--acc); color:var(--bg);
+  font-weight:700; font-size:24px; text-transform:uppercase; margin-bottom:30px; }
+.hero { font-weight:700; line-height:1.08; letter-spacing:-.06em; white-space:nowrap; }
+.hero .acc { color:var(--acc); }
+.body { font-weight:500; line-height:1.3; margin-top:36px; letter-spacing:-.01em; }
+.cap  { font-weight:400; line-height:1.35; }
 .photo { position:absolute; inset:0; background-size:cover; background-position:center; }
-.scrim { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(0,0,0,0) 38%,rgba(0,0,0,.82) 100%); }
+.scrim { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(0,0,0,.25) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 38%,rgba(0,0,0,.62) 62%,rgba(0,0,0,.92) 100%); }
 .stack { position:absolute; left:90px; right:90px; bottom:150px; z-index:4; }
+.mid { position:absolute; top:50%; left:90px; right:90px; transform:translateY(-50%); z-index:4; }
 .bullet { display:flex; gap:20px; align-items:baseline; margin-bottom:22px; }
-.bullet .dot { color:__ORANGE__; font-size:22px; line-height:1.2; }
-.bullet .txt { font-weight:800; font-size:34px; }
-.nick.center { left:0; right:0; bottom:auto; top:930px; text-align:center; font-size:44px; color:__BLACK__; }
-""".replace("__INTER__",INTER_B64).replace("__CREAM__",CREAM).replace("__BLACK__",BLACK)\
-   .replace("__ORANGE__",ORANGE).replace("__GRAY__",GRAY).replace("__CHROME__",CHROME)\
-   .replace("__GRID__",GRID)
+.bullet .dot { color:var(--acc); font-size:22px; line-height:1.2; }
+.bullet .txt { font-weight:600; font-size:34px; }
+.card { background:var(--card); border-radius:32px; }
+"""
+
+# Ужать заголовок, если строка шире кадра; подсветить вылеты в консоль.
+FIT_JS = """() => {
+  const issues=[]; const W=900;
+  for (const h of document.querySelectorAll('.hero')) {
+    const box=h.closest('.card')||h.parentElement;
+    const maxW=Math.min(W, box.clientWidth||W);
+    let size=parseFloat(getComputedStyle(h).fontSize);
+    const start=size;
+    h.style.display='inline-block';
+    while (h.getBoundingClientRect().width>maxW && size>44) { size-=2; h.style.fontSize=size+'px'; }
+    h.style.display='';
+    if (size<start) issues.push(`заголовок ужат ${start}→${size}px`+(size<start*.8?' — лучше разбей строку на две':''));
+    if (size<=44) { h.style.whiteSpace='normal'; issues.push('🔴 заголовок не лезет — сократи текст'); }
+  }
+  const top=document.querySelector('.top'); const topB=top?top.getBoundingClientRect().bottom:0;
+  for (const b of document.querySelectorAll('.stack,.mid')) {
+    const r=b.getBoundingClientRect();
+    if (r.top<topB+16) issues.push('🔴 текст наезжает на логотип/счётчик сверху — сократи');
+    if (r.bottom>1350-100) issues.push('🔴 текст уходит в зону ника снизу — сократи');
+  }
+  for (const e of document.querySelectorAll('.stack *,.mid *')) {
+    const r=e.getBoundingClientRect();
+    if (r.right>1080-70) { issues.push('🔴 текст вылезает за правое поле — сократи'); break; }
+  }
+  return issues;
+}"""
+
+async def assert_font(pg):
+    """Без Montserrat с кириллицей браузер молча подставит засечки — такой слайд сдавать нельзя."""
+    ok=await pg.evaluate("""async()=>{await document.fonts.load('700 40px Montserrat','Жж');
+        await document.fonts.ready; return document.fonts.check('700 40px Montserrat','Жж')}""")
+    if not ok:
+        print("🔴 ABORT: Montserrat с кириллицей не загрузился. Положи шрифт в materials/шрифты/Montserrat/ "
+              "или проверь интернет."); sys.exit(1)
+
+# Красные линии Ward (голос бренда + дизайн-код): проверка текста слайдов перед рендером
+RED_LINES=[(r"заработ|доход|быстр\w*\s+деньг","теневой бан: заработок / доход / быстрые деньги"),
+           (r"без\s+риска|гарантир","обещание: «без риска» / «гарантированно»"),
+           (r"₽|\bруб","валюта только $ или USDT"),
+           (r"binance|bybit|\bokx\b|бинанс|байбит","названия бирж нельзя"),
+           (r"\+\s?\d+\s?%","стрелки и проценты в плюс как обещание"),
+           (r"https?://|www\.","внешние ссылки нельзя")]
+def lint_copy(slides):
+    for s in slides:
+        if s["layout"]=="source": continue
+        txt=json.dumps({k:v for k,v in s.items() if k not in ("bg","photo","object","video","slug","layout")},ensure_ascii=False)
+        for pat,why in RED_LINES:
+            m=re.search(pat,txt,re.I)
+            if m: print(f"🔴 красная линия, слайд {s['n']}: «{m.group(0)}» — {why}")
+
 
 # --- утилиты ---
 def hero_html(parts, size, color=None):
@@ -99,7 +196,9 @@ def hero_html(parts, size, color=None):
         else:
             out.append(str(p))
     col=f"color:{color};" if color else ""
-    return f'<div class="hero" style="font-size:{size}px;{col}">' + "<br>".join(out) + "</div>"
+    # трекинг дизайн-кода −60: на кегле меньше 80 px кириллица слипается — там −45
+    track="" if size>=80 else "letter-spacing:-.045em;"
+    return f'<div class="hero" style="font-size:{size}px;{track}{col}">' + "<br>".join(out) + "</div>"
 
 def prep_image(src, out_assets, maxpx=1500):
     """Копирует+ужимает картинку в _assets, возвращает base64.
@@ -193,11 +292,11 @@ def ensure_one_video(slides):
         if len(content)<3: return
         mid_pos=len(content)//2
         mid_n=content[mid_pos]["n"]
-        for s in slides:
-            if s["n"]>mid_n or (s["n"]==mid_n and s is not content[mid_pos]):
-                s["n"]+=1
         vid=pick_random_video()
         if vid:
+            for s in slides:
+                if s["n"]>mid_n or (s["n"]==mid_n and s is not content[mid_pos]):
+                    s["n"]+=1
             neighbor=content[mid_pos]
             new_slide={"n":mid_n+1,"layout":"video-bg","slug":"video","video":vid,
                        "kicker":"суть",
@@ -213,32 +312,17 @@ def ensure_one_video(slides):
         print(f"⚠ {len(video_slides)} видео-слотов (правило: ровно 1). Не режу — проверь сам.")
 
 # HTML для прозрачного оверлея (текст поверх видео) — см. workflows/video_backgrounds.md
-VIDEO_OVERLAY_CSS = """
-* { margin:0; padding:0; box-sizing:border-box; }
-/* 🔴 forcing transparent на html/body/.frame — иначе omit_background не сработает */
-html, body, .frame { background: transparent !important; }
-@font-face { font-family:'Inter'; src:url('__INTER__') format('truetype-variations'); font-weight:100 900; }
-body { width:1080px; height:1350px; overflow:hidden; font-family:'Inter',sans-serif; }
-.frame { position:relative; width:1080px; height:1350px; }
-.scrim { position:absolute; inset:0; background:linear-gradient(to bottom,
-  rgba(10,10,10,.58) 0%, rgba(10,10,10,.46) 38%, rgba(10,10,10,.46) 62%, rgba(10,10,10,.9) 100%); }
-.counter { position:absolute; top:48px; left:90px; font-weight:800; font-size:26px;
-  color:#FFFFFF; letter-spacing:2px; text-shadow:0 2px 14px rgba(0,0,0,.6); }
-.nick { position:absolute; bottom:64px; left:90px; font-weight:800; font-size:26px;
-  color:#EBEBEB; text-shadow:0 2px 14px rgba(0,0,0,.6); }
-.wrap { position:absolute; left:90px; right:90px; bottom:150px; }
-.kicker { font-weight:800; font-size:24px; letter-spacing:4px; color:#FF7A45;
-  text-transform:uppercase; margin-bottom:22px; text-shadow:0 2px 16px rgba(0,0,0,.5); }
-.hero { font-weight:900; font-size:84px; line-height:1.05; letter-spacing:-1.5px;
-  color:#FFFFFF; text-shadow:0 4px 30px rgba(0,0,0,.55); }
-.hero .acc { color:#FF7A45; }
-.body { font-weight:600; font-size:36px; line-height:1.28; color:#EFEAE0;
-  margin-top:36px; text-shadow:0 2px 18px rgba(0,0,0,.6); }
-""".replace("__INTER__", INTER_B64)
+VIDEO_OVERLAY_CSS = BASE_CSS + """
+/* 🔴 forcing transparent на html/body/.slide — иначе omit_background не сработает */
+html, body, .slide { background: transparent !important; }
+.scrim { background:linear-gradient(to bottom,rgba(0,0,0,.58) 0%,rgba(0,0,0,.46) 38%,rgba(0,0,0,.46) 62%,rgba(0,0,0,.9) 100%); }
+.hero { font-size:84px; }
+.body { font-size:36px; }
+"""
 
 def build_video_overlay_html(s, total):
     """Прозрачный HTML для оверлея на видео-фон. Тот же контент что у photo-overlay,
-    но светлый текст + scrim + text-shadow."""
+    светлый текст + scrim."""
     counter=f'{s["n"]:02d}/{total:02d}'
     kicker=f'<div class="kicker">{s["kicker"]}</div>' if s.get("kicker") else ""
     # hero может быть строкой или списком (с accent)
@@ -250,14 +334,13 @@ def build_video_overlay_html(s, total):
             cls="acc" if p.get("accent") else ""
             parts.append(f'<span class="{cls}">{p["t"]}</span>')
         else: parts.append(str(p))
-    hero_html='<div class="hero">' + "<br>".join(parts) + '</div>'
+    hero_block='<div class="hero">' + "<br>".join(parts) + '</div>'
     body=f'<div class="body">{s["body"]}</div>' if s.get("body") else ""
-    return (f'<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">'
+    nick=f'<div class="nick">{nick_of(s)}</div>' if nick_of(s) else ""
+    return (f'<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">{FONT_LINKS}'
             f'<style>{VIDEO_OVERLAY_CSS}</style></head><body>'
-            f'<div class="frame"><div class="scrim"></div>'
-            f'<div class="counter">{counter}</div>'
-            f'<div class="wrap">{kicker}{hero_html}{body}</div>'
-            f'<div class="nick">{nick_of(s)}</div></div></body></html>')
+            f'<div class="slide light"><div class="scrim"></div>{top_chrome(counter,"white")}'
+            f'<div class="stack">{kicker}{hero_block}{body}</div>{nick}</div></body></html>')
 
 async def render_video_bg_slide(s, total, out_dir, pg):
     """Рендер layout='video-bg': прозрачный PNG-оверлей + ffmpeg композит с mp4.
@@ -285,10 +368,10 @@ async def render_video_bg_slide(s, total, out_dir, pg):
     # 1) Прозрачный PNG через Playwright
     html=build_video_overlay_html(s, total)
     html_path.write_text(html, encoding="utf-8")
-    await pg.goto(f"file://{html_path}")
-    try: await pg.evaluate("document.fonts.ready")
-    except Exception: pass
-    await pg.wait_for_timeout(500)
+    await pg.goto(f"file://{html_path}", wait_until="networkidle")
+    await assert_font(pg)
+    for msg in await pg.evaluate(FIT_JS): print(f"  слайд {s['n']}: {msg}")
+    await pg.wait_for_timeout(300)
     await pg.screenshot(path=str(overlay), omit_background=True)
 
     # 2) Предохранитель: PNG должен иметь альфа-канал
@@ -365,10 +448,11 @@ def pick_random_photo(used, photos_dir, recent=None):
 def build_slide(s, total, out_assets, photos_dir, used, recent_photos=None):
     layout=s["layout"]
     counter=f'{s["n"]:02d}/{total:02d}'
-    bookmark=s.get("bookmark", s.get("_chrome_bookmark", False))
     arrow=s.get("arrow", False)
-    grid=s.get("grid", False)
     kicker=f'<div class="kicker">{s["kicker"]}</div>' if s.get("kicker") else ""
+    theme=s.get("theme") or ("green" if layout=="cta" else "black")
+    if theme not in THEMES:
+        print(f"⚠ слайд {s['n']}: неизвестная тема «{theme}» — ставлю black"); theme="black"
 
     def resolve_photo(val):
         if val=="auto" or val is None:
@@ -388,7 +472,7 @@ def build_slide(s, total, out_assets, photos_dir, used, recent_photos=None):
             print(f"🔴 ABORT: slide {s['n']} ({kind}) — фото не найдено: «{val}». Проверь путь.")
             sys.exit(1)
         print(f"⚠ slide {s['n']} ({kind}): папка фото автора пуста ({photos_dir}) — "
-              f"рендерю без фото (типографика на креме). Положи фото в materials/фото_автора/.")
+              f"рендерю без фото (заглушка-градиент). Положи фото в materials/фото_автора/.")
 
     if layout in ("cover-photo","photo-overlay"):
         img=resolve_photo(s.get("photo","auto"))
@@ -402,131 +486,137 @@ def build_slide(s, total, out_assets, photos_dir, used, recent_photos=None):
     if layout=="cover-photo":
         light=True
         inner=(f'<div class="photo" style="background-image:url(\'{img}\')"></div><div class="scrim"></div>'
-               f'<div class="stack" style="color:#fff">{kicker}{hero_html(s["hero"],96)}</div>')
+               f'<div class="stack" style="color:#fff">{kicker}{hero_html(s["hero"],92)}</div>')
     elif layout=="photo-overlay":
         light=True
         inner=(f'<div class="photo" style="background-image:url(\'{img}\')"></div><div class="scrim"></div>'
-               f'<div class="stack" style="color:#fff">{hero_html(s["title"],76)}'
-               f'<div class="body" style="font-size:38px">{s["body"]}</div></div>')
+               f'<div class="stack" style="color:#fff">{hero_html(s["title"],74)}'
+               f'<div class="body" style="font-size:36px">{s["body"]}</div></div>')
     elif layout in ("cover-visual","object-list"):
-        obj=prep_image(s["object"], out_assets) if s.get("object") and s["object"]!="auto" else None
-        objdiv=(f'<div style="position:absolute;top:0;left:0;right:0;height:820px;background-image:url(\'{obj}\');'
-                f'background-size:cover;background-position:center top"></div>'
-                f'<div style="position:absolute;top:0;left:0;right:0;height:880px;'
-                f'background:linear-gradient(0deg,{CREAM} 0%,{CREAM} 16%,transparent 46%)"></div>') if obj else ""
+        # object = картинка Higgsfield (объект сверху, низ чёрный). Нет файла → заглушка-градиент бренда.
+        src=s.get("object") if s.get("object") not in (None,"auto") else None
+        src=src or (s.get("bg") if s.get("bg") not in (None,"placeholder") else None)
+        obj=prep_image(src, out_assets) if src else None
+        if obj:
+            objdiv=(f'<div class="photo" style="background-image:url(\'{obj}\')"></div>'
+                    f'<div class="scrim"></div>')
+            light=True
+        else:
+            objdiv=placeholder_bg(s)
         if layout=="cover-visual":
             body=f'<div class="body" style="font-size:36px">{s["body"]}</div>' if s.get("body") else ""
-            inner=objdiv+f'<div class="stack">{kicker}{hero_html(s["hero"],84)}{body}</div>'
+            inner=objdiv+f'<div class="stack">{kicker}{hero_html(s["hero"],88)}{body}</div>'
         else:  # object-list
             bl="".join(f'<div class="bullet"><span class="dot">●</span><span class="txt">{t}</span></div>' for t in s.get("items",[]))
-            inner=(objdiv+f'<div style="position:absolute;left:90px;right:90px;top:760px">{kicker}'
-                   f'{hero_html(s["hero"],74)}<div style="margin-top:30px">{bl}</div></div>')
+            inner=(objdiv+f'<div class="stack">{kicker}'
+                   f'{hero_html(s["hero"],70)}<div style="margin-top:32px">{bl}</div></div>')
     elif layout=="poster":
         cap=f'<div class="cap" style="margin-top:40px;font-size:34px">{s["caption"]}</div>' if s.get("caption") else ""
-        inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%);text-align:center">'
-               f'{hero_html(s["hero"],104)}{cap}</div>')
+        inner=f'<div class="mid">{kicker}{hero_html(s["hero"],100)}{cap}</div>'
     elif layout=="stat":
         # БАГ 4 (фикс): авто-размер большой цифры по длине строки, чтобы $965B / 113K не вылезали
         big=str(s["big"]); L=len(big)
-        big_sz = 340 if L<=3 else (280 if L==4 else (230 if L==5 else (200 if L==6 else 170)))
+        big_sz = 340 if L<=3 else (270 if L==4 else (220 if L==5 else (190 if L==6 else 160)))
         unit=f'<div class="hero" style="font-size:64px;margin-top:10px">{s["unit"]}</div>' if s.get("unit") else ""
-        body=f'<div class="body" style="font-size:36px;margin-top:36px;color:{GRAY}">{s["body"]}</div>' if s.get("body") else ""
-        inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%);text-align:center">'
-               f'<div style="font-size:{big_sz}px;font-weight:900;line-height:.9;color:{ORANGE};letter-spacing:-8px;white-space:nowrap;overflow:visible">{big}</div>'
+        body=f'<div class="body" style="font-size:36px">{s["body"]}</div>' if s.get("body") else ""
+        inner=(f'<div class="mid">{kicker}'
+               f'<div style="font-size:{big_sz}px;font-weight:700;line-height:1;color:var(--acc);letter-spacing:-.06em;white-space:nowrap">{big}</div>'
                f'{unit}{body}</div>')
     elif layout=="insight":
-        cap=f'<div class="body" style="font-size:36px;margin-top:36px;color:{GRAY}">{s["caption"]}</div>' if s.get("caption") else ""
-        inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%);text-align:center">'
-               f'<div style="font-size:120px;font-weight:900;color:{ORANGE};letter-spacing:-3px">#{s["insight_no"]}</div>'
-               f'{hero_html(s["hero"],88)}{cap}</div>')
+        cap=f'<div class="body" style="font-size:36px">{s["caption"]}</div>' if s.get("caption") else ""
+        inner=(f'<div class="mid"><div style="font-size:120px;font-weight:700;color:var(--acc);letter-spacing:-.06em;margin-bottom:16px">#{s["insight_no"]}</div>'
+               f'{hero_html(s["hero"],84)}{cap}</div>')
     elif layout=="quote":
-        dark=s.get("dark",False)
-        # БАГ 15: кавычки настраиваемые — русские «ёлочки» по умолчанию,
-        # англоязычные карусели (EU2Bali/Younis) передают "marks": ["“","”"].
+        # БАГ 15: кавычки настраиваемые — русские «ёлочки» по умолчанию.
         lq,rq=s.get("marks",["«","»"])
-        inner_q=(f'<div style="font-weight:900;font-size:58px;line-height:1.2;color:{"#fff" if dark else BLACK}">{lq}{s["quote"]}{rq}</div>'
-                 f'<div class="cap" style="margin-top:34px;font-size:28px;color:{"#888" if dark else GRAY}">— {s["source"]}</div>')
-        if dark:
-            inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%)">'
-                   f'<div style="background:{CARD};border-radius:24px;padding:60px 50px;box-shadow:0 20px 60px rgba(232,90,44,.18)">{inner_q}</div></div>')
+        inner_q=(f'<div style="font-weight:600;font-size:56px;line-height:1.22;letter-spacing:-.03em">{lq}{s["quote"]}{rq}</div>'
+                 f'<div class="cap" style="margin-top:34px;font-size:28px">— {s["source"]}</div>')
+        if s.get("dark",False):
+            inner=f'<div class="mid"><div class="card" style="padding:60px 50px">{inner_q}</div></div>'
         else:
-            inner=f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%)">{inner_q}</div>'
+            inner=f'<div class="mid">{inner_q}</div>'
     elif layout=="list":
         rows=""
-        for i,it in enumerate(s["items"],1):
+        items=s["items"]
+        for i,it in enumerate(items,1):
             lab=it.get("label","") if isinstance(it,dict) else ""
             val=it.get("value",it) if isinstance(it,dict) else it
-            num=f'<span style="color:{ORANGE};font-weight:800;font-size:24px">{i:02d}</span>'
-            labh=f'<span style="color:#fff;font-weight:800;font-size:30px;min-width:200px">{lab}</span>' if lab else ""
-            rows+=(f'<div style="display:flex;gap:22px;align-items:baseline;padding:20px 0;border-bottom:1px solid #2a2a2a">'
-                   f'{num}{labh}<span style="color:#aaa;font-weight:500;font-size:26px">{val}</span></div>')
+            num=f'<span style="color:var(--acc);font-weight:700;font-size:26px;min-width:44px">{i:02d}</span>'
+            labh=f'<div style="font-weight:700;font-size:34px;letter-spacing:-.02em">{lab}</div>' if lab else ""
+            sep="border-bottom:1px solid var(--line);" if i<len(items) else ""
+            rows+=(f'<div style="display:flex;gap:26px;align-items:baseline;padding:24px 0;{sep}">'
+                   f'{num}<div>{labh}<div style="font-weight:400;font-size:30px;line-height:1.3;margin-top:6px">{val}</div></div></div>')
         # БАГ 14: карточка списка центрируется по вертикали — при 3-5 пунктах жёсткий
         # top:160px оставлял треть кадра пустой снизу (вёрстка читалась как обрыв).
-        inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%)">{kicker}'
-               f'{hero_html(s["hero"],66)}'
-               f'<div style="margin-top:34px;background:{CARD};border-radius:24px;padding:34px 44px;box-shadow:0 20px 60px rgba(232,90,44,.18)">{rows}</div></div>')
+        inner=(f'<div class="mid">{kicker}{hero_html(s["hero"],78)}'
+               f'<div class="card" style="margin-top:36px;padding:20px 44px">{rows}</div></div>')
     elif layout=="compare":
         L,R=s["left"],s["right"]
-        li="<br>".join("• "+x for x in L["items"]); ri="<br>".join("• "+x for x in R["items"])
-        # БАГ 14 (см. list): две колонки тоже центрируем по вертикали.
-        inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%)">{kicker}{hero_html(s["hero"],64)}'
-               f'<div style="display:flex;gap:26px;margin-top:36px">'
-               f'<div style="flex:1;background:{CARD};border-radius:22px;padding:32px"><div style="color:{ORANGE};font-weight:900;font-size:30px;margin-bottom:20px">{L["title"]}</div>'
-               f'<div style="color:#eee;font-size:26px;line-height:1.5">{li}</div></div>'
-               f'<div style="flex:1;background:#fff;border:2px solid {BLACK};border-radius:22px;padding:32px"><div style="color:{BLACK};font-weight:900;font-size:30px;margin-bottom:20px">{R["title"]}</div>'
-               f'<div style="color:{BLACK};font-size:26px;line-height:1.5">{ri}</div></div></div></div>')
+        li="".join(f'<div style="margin-bottom:14px">{x}</div>' for x in L["items"])
+        ri="".join(f'<div style="margin-bottom:14px">{x}</div>' for x in R["items"])
+        # БАГ 14 (см. list): две колонки тоже центрируем. Левая — приглушённая (дизайн-код: Dim Grey-колонка).
+        inner=(f'<div class="mid">{kicker}{hero_html(s["hero"],76)}'
+               f'<div style="display:flex;gap:24px;margin-top:36px">'
+               f'<div class="card" style="flex:1;padding:34px;color:{SLATE}"><div style="font-weight:700;font-size:34px;margin-bottom:22px">{L["title"]}</div>'
+               f'<div style="font-weight:500;font-size:29px;line-height:1.3">{li}</div></div>'
+               f'<div class="card" style="flex:1;padding:31px;border:3px solid var(--acc)"><div style="color:var(--acc);font-weight:700;font-size:34px;margin-bottom:22px">{R["title"]}</div>'
+               f'<div style="font-weight:500;font-size:29px;line-height:1.3">{ri}</div></div></div></div>')
     elif layout=="formula":
         cap=f'<div class="cap" style="margin-top:40px;font-size:32px">{s["caption"]}</div>' if s.get("caption") else ""
-        inner=(f'<div style="position:absolute;top:50%;left:90px;right:90px;transform:translateY(-50%);text-align:center">{kicker}'
-               f'<div class="hero" style="font-size:92px;margin-top:14px">{s["top_block"]}</div>'
-               f'<div style="height:6px;background:{ORANGE};margin:44px 0"></div>'
-               f'<div class="hero" style="font-size:92px;color:{ORANGE}">{s["bottom_block"]}</div>{cap}</div>')
+        inner=(f'<div class="mid">{kicker}'
+               f'<div class="hero" style="font-size:88px;margin-top:14px">{s["top_block"]}</div>'
+               f'<div style="height:6px;border-radius:3px;background:var(--acc);margin:44px 0"></div>'
+               f'<div class="hero" style="font-size:88px;color:var(--acc)">{s["bottom_block"]}</div>{cap}</div>')
     elif layout=="source":
         # БАГ 5 (фикс): поддержка реального скриншота вместо серых заглушек.
         # Если в JSON есть "screenshot": "path.png" — вставляем его в мокап браузера.
         url=s.get("url","источник"); cap=s.get("caption","")
-        # Штамп настраиваемый: русские карусели — «ИСТОЧНИК» (дефолт),
-        # англоязычные (Бали/Younis) — "SOURCE" через поле "stamp".
         stamp=s.get("stamp","ИСТОЧНИК")
         shot_path=s.get("screenshot")
         if shot_path:
             shot_b64=prep_image(shot_path, out_assets, maxpx=1400)
             content=(f'<img src="{shot_b64}" style="width:100%;display:block">' if shot_b64
-                     else '<div style="padding:60px;color:#888;text-align:center">[скриншот не найден]</div>')
+                     else f'<div style="padding:60px;color:{SLATE};text-align:center">[скриншот не найден]</div>')
         else:
-            content=('<div style="padding:38px"><div style="height:24px;width:62%;background:#3a3a3a;border-radius:6px;margin-bottom:22px"></div>'
-                     '<div style="height:16px;width:100%;background:#262626;border-radius:6px;margin-bottom:12px"></div>'
-                     '<div style="height:16px;width:88%;background:#262626;border-radius:6px"></div></div>')
-        inner=(f'<div style="position:absolute;top:180px;left:90px;right:90px">{kicker}{hero_html(s.get("hero",["Это не выдумка —",{"t":"вот источник","accent":True}]),58)}'
-               f'<div style="margin-top:34px;background:{CARD};border-radius:22px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.2)">'
-               f'<div style="background:#1c1c1e;padding:18px 22px;display:flex;gap:10px;align-items:center">'
-               f'<span style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></span>'
-               f'<span style="width:13px;height:13px;border-radius:50%;background:#febc2e"></span>'
-               f'<span style="width:13px;height:13px;border-radius:50%;background:#28c840"></span>'
-               f'<span style="color:#888;font-size:19px;margin-left:14px">{url}</span></div>'
+            content=(f'<div style="padding:38px"><div style="height:24px;width:62%;background:{DIM};border-radius:8px;margin-bottom:22px"></div>'
+                     f'<div style="height:16px;width:100%;background:var(--line);border-radius:8px;margin-bottom:12px"></div>'
+                     f'<div style="height:16px;width:88%;background:var(--line);border-radius:8px"></div></div>')
+        dot=f'<span style="width:13px;height:13px;border-radius:50%;background:{SLATE}"></span>'
+        inner=(f'<div style="position:absolute;top:150px;left:90px;right:90px">{kicker}{hero_html(s.get("hero",["Это не выдумка —",{"t":"вот источник","accent":True}]),58)}'
+               f'<div class="card" style="margin-top:34px;overflow:hidden">'
+               f'<div style="padding:18px 22px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line)">'
+               f'{dot}{dot}{dot}<span style="color:{SLATE};font-size:20px;margin-left:14px">{url}</span></div>'
                f'{content}</div>'
-               f'<div style="display:inline-block;margin-top:26px;background:{ORANGE};color:#fff;font-weight:900;font-size:24px;padding:11px 24px;transform:rotate(-3deg)">{stamp}</div>'
+               f'<div class="kicker" style="margin-top:26px;margin-bottom:0">{stamp}</div>'
                f'<div class="cap" style="margin-top:20px;font-size:28px">{cap}</div></div>')
     elif layout=="cta":
         # Финальный слайд Ward: «Подпишись, чтобы не потерять» (materials/финальный_слайд.md).
         # Текст можно переопределить полями hero / caption, но по умолчанию — канон.
-        hero=s.get("hero") or ["Подпишись,", {"t":"чтобы не потерять","accent":True}]
+        hero=s.get("hero") or ["Подпишись,", {"t":"чтобы", "accent":True}, {"t":"не потерять","accent":True}]
         cap=s.get("caption")
         caph=f'<div class="cap" style="margin-top:40px;font-size:34px">{cap}</div>' if cap else ""
-        inner=(f'<div style="position:absolute;top:420px;left:90px;right:90px;text-align:center">{kicker}'
-               f'{hero_html(hero,104)}{caph}</div>')
+        nk=f'<div style="margin-top:56px;font-weight:600;font-size:44px;letter-spacing:-.02em">{nick_of(s)}</div>' if nick_of(s) else ""
+        inner=f'<div class="mid">{kicker}{hero_html(hero,128)}{caph}{nk}</div>'
     else:
         raise ValueError(f"Неизвестный layout: {layout}")
 
-    cls="slide light" if light else "slide"
-    gr='<div class="grid"></div>' if grid else ""
-    bm='<div class="bookmark"></div>' if bookmark else ""
-    cnt_cls="counter" if bookmark else "counter nobm"
+    # фон-картинка для типографских макетов: "bg": путь к файлу Higgsfield | "placeholder"
+    if layout in ("poster","stat","insight","quote","list","compare","formula","cta") and s.get("bg"):
+        if s["bg"]=="placeholder":
+            inner=placeholder_bg(s)+inner
+        else:
+            img=prep_image(s["bg"], out_assets)
+            if img is None:
+                print(f"🔴 ABORT: слайд {s['n']} — фон не найден: «{s['bg']}»"); sys.exit(1)
+            inner=f'<div class="photo" style="background-image:url(\'{img}\')"></div><div class="scrim"></div>'+inner
+            light=True
+
+    cls=f"slide t-{theme}"+(" light" if light else "")
+    logo="black" if theme in ("green","white") and not light else "white"
     ar='<div class="arrow">&#8594;</div>' if arrow and layout!="cta" else ""
-    nick_cls="nick center" if layout=="cta" else "nick"   # на CTA ник по центру крупно (правило 6)
-    return (f'<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><style>{BASE_CSS}</style></head>'
-            f'<body><div class="{cls}">{gr}{bm}<div class="{cnt_cls}">{counter}</div>{inner}{ar}'
-            f'<div class="{nick_cls}">{nick_of(s)}</div></div></body></html>')
+    nick=f'<div class="nick">{nick_of(s)}</div>' if nick_of(s) and layout!="cta" else ""   # на CTA ник крупно в блоке (правило 6)
+    return (f'<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">{FONT_LINKS}<style>{BASE_CSS}</style></head>'
+            f'<body><div class="{cls}">{inner}{top_chrome(counter,logo)}{ar}{nick}</div></body></html>')
 
 # --- БАГ 7 (фикс): возрастающие EXIF-даты, чтобы iPhone сохранил порядок карусели ---
 def stamp_exif_order(out_dir):
@@ -574,6 +664,12 @@ async def main():
     photos_dir=Path(spec.get("photos_dir") or PHOTOS_DIR_DEFAULT)
     if not photos_dir.is_absolute(): photos_dir=(SKILL/photos_dir)
     slides=spec["slides"]; total=spec.get("total", len(slides))
+    if len(slides)>10:
+        print(f"🔴 ABORT: {len(slides)} слайдов — лимит 10 (правило 1)"); sys.exit(1)
+    lint_copy(slides)
+    greens=[s["n"] for s in slides if s.get("theme")=="green" or (s["layout"]=="cta" and not s.get("theme"))]
+    if len(greens)>2:
+        print(f"⚠ зелёная заливка на слайдах {greens} — дизайн-код: не чаще 1–2 раз на карусель")
     chrome=spec.get("chrome",{})
     used=set()
     # БАГ 12: usage-log между каруселями — исключаем последние N использованных
@@ -625,7 +721,7 @@ async def main():
         for s in slides:
             if s["layout"]=="video-bg":
                 if await render_video_bg_slide(s, total, out_dir, pg): continue
-                # клипа нет → тот же текст статикой (cover-visual без объекта на креме)
+                # клипа нет → тот же текст статикой (cover-visual с заглушкой-градиентом)
                 s=dict(s, layout="cover-visual", object=None,
                        hero=s.get("hero") or s.get("title") or [])
             if s["layout"]=="video-clip":
@@ -637,6 +733,8 @@ async def main():
             html=build_slide(s, total, out_assets, photos_dir, used, recent_photos)
             outname=f'{s["n"]:02d}_{s.get("slug",s["layout"])}.{ext}'
             await pg.set_content(html, wait_until="networkidle")
+            await assert_font(pg)
+            for msg in await pg.evaluate(FIT_JS): print(f"  слайд {s['n']}: {msg}")
             await pg.screenshot(path=str(out_dir/outname), **screenshot_kw)
             print(f"✓ {outname}")
         await b.close()

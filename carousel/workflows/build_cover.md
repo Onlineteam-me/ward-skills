@@ -37,9 +37,9 @@ generate_image(
 ## Шаг 2: Скачать PNG
 
 ```bash
-curl -o "/tmp/cover_bg.png" "{image_url}"
-sips -g pixelWidth -g pixelHeight "/tmp/cover_bg.png"
-# если > 2000 → sips -Z 2000 "/tmp/cover_bg.png"
+curl -o "<папка карусели>/черновики/cover_bg.png" "{image_url}"
+sips -g pixelWidth -g pixelHeight "<папка карусели>/черновики/cover_bg.png"
+# если > 2000 → sips -Z 2000 тот же файл
 ```
 
 ## Шаг 3: HTML-overlay через Playwright
@@ -47,7 +47,7 @@ sips -g pixelWidth -g pixelHeight "/tmp/cover_bg.png"
 Создай HTML где:
 - background-image: `data:image/png;base64,...` (inline base64 для надёжности через `file://`)
 - Поверх — текстовые слои (хук, подзаголовок, ник `{{НИК_АККАУНТА}}`, счётчик)
-- Шрифты: Inter (см. `knowledge/visual_dna_format_B.md`)
+- Шрифты: Montserrat (см. `_ward/Дизайн-код Ward.md`); логотип — из `_ward/логотип/`
 
 Рендер:
 ```python
@@ -77,7 +77,7 @@ with sync_playwright() as p:
 - `sips -g pixelWidth -g pixelHeight screenshot.png`; если сторона > 2000 → `sips -Z 2000`.
 
 ### Шаг 2: Решить раскладку
-- **Скрин в карточке** (как референс): тёмная карточка `#0A0A0A` с border-radius, внутри скрин; вокруг — крем-фон с сеткой, kicker, штамп «ИСТОЧНИК» (оранжевый), хук снизу. Скрин читаемый, не на весь кадр.
+- **Скрин в карточке** (как референс): скруглённая карточка, внутри скрин; вокруг — чёрный фон, пилюля-kicker, пилюля «ИСТОЧНИК» (Emerald), хук снизу. Скрин читаемый, не на весь кадр.
 - **Скрин фоном на весь кадр**: тогда обязателен scrim + светлый текст (как видео-оверлей), иначе текст не читается.
 
 ### Шаг 3: HTML-overlay через Playwright

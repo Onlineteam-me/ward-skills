@@ -1,4 +1,4 @@
-# carousel skill — default settings
+# carousel-ward — настройки по умолчанию
 
 model:
   generation: nano_banana_2          # фотореалистичные слайды
@@ -26,7 +26,7 @@ visuals:
   cover_pool: "format == vertical"     # обложка = рандом ТОЛЬКО среди вертикальных (горизонталка ломает 4:5)
   no_repeat_within_carousel: true      # один кадр = один раз в карусели (random.sample)
   randomizer: shell                    # рандомить через python random в shell, НЕ «на глаз» (LLM плохо рандомит)
-  slide_1: photo                       # обложка = всегда фото
+  slide_1: photo                       # обложка = фото; пока фото нет — заглушка-градиент
   slide_last_cta: subscribe            # слайд 10 = всегда «Подпишись, чтобы не потерять» (layout cta, правило 4)
   video_per_carousel: 1                # РОВНО 1 видео-слот на карусель (случайный клип), не больше
   cadence: "визуальный слот каждые 2-3 контентных слайда"
@@ -46,6 +46,9 @@ final_cta:
   disclaimer: "Не финансовая рекомендация."
   source: "materials/финальный_слайд.md"
 
+higgsfield:
+  require_explicit_yes: true           # 🔴 никаких генераций без «да» с названной ценой: сначала промпты в чат
+
 iteration_limits:
   higgsfield_max_retries: 3
   call_user_after_failures: 3
@@ -59,19 +62,20 @@ safety:
 env:
   # Фиксированный путь к Python с установленным playwright (системный python3 = 3.14 БЕЗ playwright).
   # БАГ 6: не угадывать — использовать ИМЕННО этот venv для render.py и screenshot_url.py.
-  python_with_playwright: "{{PYTHON_С_PLAYWRIGHT}}"   # например "~/.venvs/carousel/bin/python" — см. README.md → «Установка»
+  python_with_playwright: "{{PYTHON_С_PLAYWRIGHT}}"   # например "~/.venvs/carousel/bin/python". Локальное значение — config/settings.local.yml (в git не идёт), см. README.md
   exiftool_install: "brew install exiftool"   # для порядка карусели на iPhone (см. workflows/handover.md)
 
 brand:
-  nickname: "{{НИК_АККАУНТА}}"          # Instagram-аккаунт бренда, например "@ward.cap" — печатается на каждом слайде
-  primary_orange: "#E85A2C"
-  cream_bg: "#EFEAE0"
-  dark_card: "#0A0A0A"
-  grid_color: "#CFC4A8"
-  fonts:
-    headline: "Inter (900)"
-    body: "Inter (600-700)"
-    mono: "JetBrains Mono"
+  nickname: "{{НИК_АККАУНТА}}"          # Instagram-аккаунт бренда — печатается на слайдах. Пока заглушка, ник не печатается
+  # Источник правды по визуалу — _ward/Дизайн-код Ward.md. Токены зашиты в scripts/render.py
+  emerald: "#15C865"
+  black: "#000000"
+  white: "#FFFFFF"
+  dim_grey: "#656565"
+  slate_grey: "#738290"
+  deep_green: "#0B3D22"                 # только в градиенте
+  font: "Montserrat"
+  logo_dir: "_ward/логотип/"            # 🔴 логотип только из файла; сейчас белый/чёрный/зелёный сделаны из WARD_логотип_белый.png, нужен официальный файл
 
 output:
   size: "1080x1350"                  # IG carousel native

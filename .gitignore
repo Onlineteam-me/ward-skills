@@ -1,4 +1,5 @@
 **/config/secrets.yml
+**/config/settings.local.yml
 **/.env
 **/__pycache__/
 **/.venv/
@@ -17,3 +18,5 @@
 *.pdf
 parsing-ward/workspace/*
 !parsing-ward/workspace/README.md
+# логотипы бренда нужны движку каруселей
+!_ward/логотип/*.png

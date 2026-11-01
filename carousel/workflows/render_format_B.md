@@ -1,6 +1,6 @@
 # Workflow — Рендер формата B (Higgsfield + HTML гибрид)
 
-См. также: `knowledge/visual_dna_format_B.md`, `knowledge/animation_specs.md`.
+См. также: `_ward/Дизайн-код Ward.md`, `knowledge/visual_dna_format_B.md`, `knowledge/animation_specs.md`.
 
 ---
 
@@ -16,7 +16,7 @@
 
 См. `workflows/build_cover.md` — отдельный воркфлоу для cover с HTML-overlay.
 
-Если cover простой (без overlay) — генерируй напрямую:
+🔴 Только после «да» с названной ценой (правило 24). Если cover простой (без overlay):
 ```
 generate_image(
   model="nano_banana_2",
@@ -32,9 +32,8 @@ generate_image(
 Эталон: спецификация `knowledge/visual_dna_format_B.md` + `knowledge/animation_specs.md` (готовые примеры в пакет не входят).
 
 ### 2a. Без анимаций (PNG)
-- Используй `templates/slide_format_B_static.html` как стартовый шаблон.
 - Подставь контент в `slides.json` и запусти `scripts/render.py`.
-- Рендер через Playwright → PNG 1080×1350.
+- Рендер через Playwright → JPG 1080×1350.
 
 ### 2b. С анимациями (MP4)
 - Эталон анимации: тайм-лайн в `knowledge/animation_specs.md`

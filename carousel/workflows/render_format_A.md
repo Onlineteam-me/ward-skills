@@ -1,6 +1,6 @@
 # Workflow — Рендер формата A (Бренд-личность)
 
-См. также: `knowledge/visual_dna_format_A.md`, `templates/slide_format_A.html`.
+См. также: `knowledge/visual_dna_format_A.md`, `_ward/Дизайн-код Ward.md`.
 
 ---
 
@@ -34,13 +34,15 @@ media_upload(filename, content_type="image/jpeg")
 
 ## Шаг 3: Генерация фото-слайдов (1, 5, 9)
 
+🔴 Только после «да» с названной ценой (правило 24). Без него — `"bg":"placeholder"`, промпты в чат.
+
 ```
 generate_image(
   model="nano_banana_2",
   prompt="<преамбула из prompts/higgsfield_photo.md> + <контент слайда>",
   aspect_ratio="4:5",
   resolution="1k",
-  medias=[{"value": "<media_id>", "role": "image"}]
+  medias=[{"value": "<media_id>", "role": "image_references"}]
 )
 → job_display(job_id)
 → curl -o "готовые/<название>/0N_*.png" "{image_url}"
@@ -54,8 +56,8 @@ generate_image(
 
 1. Составь `slides.json` по схеме и каталогу макетов → `knowledge/slide_layouts.md`. Эталон-пример: `templates/slides.example.json`. 10 слайдов = 9 контентных + `{"layout":"cta"}` на 10-й (финал «Подпишись, чтобы не потерять»).
    - Макеты: `cover-photo`, `cover-visual`, `object-list`, `poster`, `photo-overlay`, `stat`, `list`, `insight`, `quote`, `compare`, `formula`, `source`.
-   - Фото — `"photo":"auto"` (движок берёт рандомное вертикальное из `materials/фото_автора/`; пусто → типографский фолбэк). Объект Higgsfield — путь в `"object"` (генерится отдельно, на креме; промпт `prompts/higgsfield_3d_object.md`).
-   - `accent:true` на куске hero = оранжевый.
+   - Фото — `"photo":"auto"` (движок берёт рандомное вертикальное из `materials/фото_автора/`; пусто → типографский фолбэк). Картинка Higgsfield — путь в `"bg"`/`"object"` (промпт `prompts/higgsfield_3d_object.md`); её ещё нет — `"bg":"placeholder"`.
+   - `accent:true` на куске hero = Emerald. `"theme":"green"` — громкий слайд.
 2. Положи `slides.json` в `готовые/<название>/черновики/`.
 3. Рендер одной командой:
    ```bash
@@ -63,9 +65,9 @@ generate_image(
    ```
    (python с playwright — путь из `config/settings.yml → env.python_with_playwright`; установка — `README.md` скилла.)
 
-Все правила дизайн-системы (Inter, оранжевый `#E85A2C`, line-height ≥1.05, зазоры, объект edge-to-edge, сетка off, счётчик/ник) **зашиты в движок** — в JSON их задавать не нужно. Источник правды по макетам — `knowledge/slide_layouts.md`.
+Все правила дизайн-кода (Montserrat, Emerald, скругления, логотип из файла, line-height ≥1.05, зазоры, edge-to-edge, счётчик/ник) **зашиты в движок** — в JSON их задавать не нужно. Источник правды по макетам — `knowledge/slide_layouts.md`.
 
-> Объекты Higgsfield (для `cover-visual`/`object-list`) генерируй ОТДЕЛЬНО на креме (`prompts/higgsfield_3d_object.md`), путь к PNG передай в `"object"`. Движок поставит его full-bleed.
+> Движок печатает в консоль красные линии текста, ужатые заголовки и вылеты за поля — читай вывод и правь `slides.json`.
 
 ## Шаг 5: Self-check
 

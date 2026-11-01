@@ -3,13 +3,13 @@
   "title": "5_mifov_novichka",
   "format": "A",
   "total": 10,
-  "chrome": { "bookmark": false, "arrow": false, "grid": false },
+  "chrome": { "arrow": false },
   "slides": [
     { "n": 1, "layout": "cover-photo", "slug": "cover", "photo": "auto",
       "kicker": "МИФЫ", "hero": ["5 мифов,", "из-за которых", {"t": "новичок сливает депозит", "accent": true}] },
 
     { "n": 2, "layout": "poster", "slug": "context",
-      "hero": ["Трейдинг — не поиск стратегии.", {"t": "Это работа с риском", "accent": true}],
+      "hero": ["Трейдинг —", "не поиск стратегии.", {"t": "Это работа", "accent": true}, {"t": "с риском", "accent": true}],
       "caption": "↓ 5 мифов — и что вместо них" },
 
     { "n": 3, "layout": "photo-overlay", "slug": "mif1", "photo": "auto",
@@ -20,7 +20,7 @@
       "hero": ["График — что было.", {"t": "Стакан — кто стоит сейчас", "accent": true}],
       "caption": "скальпер смотрит туда, где реально стоят заявки" },
 
-    { "n": 5, "layout": "stat", "slug": "stat", "big": "~2", "unit": "года",
+    { "n": 5, "layout": "stat", "slug": "stat", "theme": "white", "big": "~2", "unit": "года",
       "body": "средний путь от нуля до уверенной торговли" },
 
     { "n": 6, "layout": "video-bg", "slug": "video", "video": "auto",
@@ -36,7 +36,7 @@
         { "label": "Журнал", "value": "записываешь каждую сделку" }
       ] },
 
-    { "n": 8, "layout": "formula", "slug": "shift", "kicker": "СДВИГ",
+    { "n": 8, "layout": "formula", "slug": "shift", "kicker": "СДВИГ", "theme": "green",
       "top_block": "Угадывать цену", "bottom_block": "Работать с механикой",
       "caption": "игрок гадает — трейдер использует механику рынка" },
 

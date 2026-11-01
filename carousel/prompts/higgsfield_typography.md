@@ -1,27 +1,16 @@
-# Higgsfield — Преамбула для слайдов БЕЗ ФОТО (типографика / UI / формулы)
+# Higgsfield — абстрактный фон под типографику (Ward)
 
-Используй для слайдов с текстом, формулами, UI-элементами — без людей и фотографий.
+🔴 Без генерации: сначала промпт в чат и цена, генерируем только после «да» (правило 24).
+
+Обычно не нужен: заглушка-градиент движка бесплатна и в бренде. Берём, когда хочется живой фактуры. Шаблон — `_ward/Дизайн-код Ward.md` → 8.2.
 
 ```
-FLAT 2D digital graphic, displayed on screen. NO physical mockups. NO 3D effects. NO book pages. NO magazine physical objects. NO product photos. NO people. NO photographs.
-TYPOGRAPHY — ALL text uses ONE font only: ultra-bold condensed grotesque sans-serif, weight 900 (Black/Heavy). Use: Druk Wide Heavy, Helvetica Neue Black (900), Impact, or Anton. ZERO serif. ZERO italic. ZERO thin/light. ZERO decorative. Letter-spacing tight. All large text in ALL CAPS.
+4:5 abstract background for an Instagram carousel slide. Deep black base with a soft emerald green (#15C865) gradient glow from the top-right corner, very subtle grain, large calm negative space in the lower half for typography. Optional: one rounded frosted-glass shape, softly lit. Minimal, premium-but-honest, no objects competing with text. Color palette strictly black (#000000) and emerald green (#15C865) with white and dim grey accents; deep shadows, soft practical light, subtle film grain; clean, minimal, rounded shapes. No money, no luxury, no casino or gambling imagery, no coins, no exchange logos, no text unless specified.
 ```
 
-## Когда использовать
-- Слайды с текстом / формулой / equation
-- UI-mockup'ы для иллюстрации
-- Типографские слайды
+Слайд целиком с текстом в картинке — только GPT Image по шаблону 8.4 дизайн-кода и с проверкой букв глазами. По умолчанию текст кладёт `render.py`.
 
 ## Параметры
 ```
-generate_image(
-  model="nano_banana_2",
-  prompt="<эта преамбула> + <контент>",
-  aspect_ratio="4:5",
-  resolution="1k"
-)
+generate_image(model="nano_banana_2", prompt="…", aspect_ratio="4:5", resolution="1k")
 ```
-
-## Связано
-- `prompts/higgsfield_photo.md` — для слайдов С фото/людьми
-- `knowledge/known_bugs.md` (Баг 2) — почему преамбулу копируем в каждый промпт

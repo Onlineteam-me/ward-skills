@@ -1,29 +1,18 @@
-# Higgsfield — Преамбула для слайдов С ФОТО / человеком
+# Higgsfield — слайд с человеком или сценой (Ward)
 
-Используй эту преамбулу в начале промпта для слайдов, где должен быть человек или фотореалистичный объект (cover-слайды с лицом автора, photo-overlay).
+🔴 Без генерации: сначала промпт в чат и цена, генерируем только после «да» (правило 24). Текста на картинке нет — типографику кладёт `render.py`. Лица Ward пока нет: реальное фото клиента важнее ИИ-персонажа.
+
+Шаблон — `_ward/Дизайн-код Ward.md` → 8.1, адаптированный под 4:5:
 
 ```
-PHOTOREALISTIC editorial design. NO cartoon. NO illustration. NO vector art. NO flat 2D style. NO physical mockups. NO 3D page-fold effects. NO magazine physical objects.
-TYPOGRAPHY — ALL text uses ONE font only: ultra-bold condensed grotesque sans-serif, weight 900 (Black/Heavy). Use: Druk Wide Heavy, Helvetica Neue Black (900), Impact, or Anton. ZERO serif. ZERO italic. ZERO thin/light. ZERO decorative. Letter-spacing tight. All large text in ALL CAPS.
+4:5 image for an Instagram carousel slide about {ТЕМА}. {СЦЕНА: e.g. "over-the-shoulder view of a young man at a home desk looking at a dark trading terminal with an order book"}. Composition: subject in the upper half, calm empty dark area in the lower half for a headline overlay, top-left corner dark and empty. Real-life documentary feel, ordinary apartment, not an office, not luxury. One emerald-green (#15C865) glow from the screen as the only accent. 35mm lens, shallow depth of field. Color palette strictly black (#000000) and emerald green (#15C865) with white and dim grey accents; deep shadows, soft practical light, subtle film grain; clean, minimal, rounded shapes. No money, no luxury, no casino or gambling imagery, no coins, no exchange logos, no text unless specified.
 ```
 
-## Когда использовать
-- Cover-слайды с лицом бренда (фото из `materials/фото_автора/`)
-- Слайды с фото-референсом через `medias: [{value: media_id, role: "image"}]`
-- Photo-overlay композиции
-
-## Параметры вызова
+## Параметры
 ```
-generate_image(
-  model="nano_banana_2",
-  prompt="<эта преамбула> + <конкретный контент слайда>",
-  aspect_ratio="4:5",
-  resolution="1k",
-  medias=[{"value": "<media_id>", "role": "image"}]
-)
+generate_image(model="nano_banana_2", prompt="…", aspect_ratio="4:5", resolution="1k")
 ```
 
 ## Связано
-- `prompts/higgsfield_typography.md` — для слайдов БЕЗ людей
-- `prompts/higgsfield_3d_object.md` — для 3D-объектов БЕЗ текста
-- `knowledge/known_bugs.md` (Баг 2) — почему преамбулу копируем в каждый промпт
+- `prompts/higgsfield_3d_object.md` — предмет-метафора без людей
+- `prompts/higgsfield_typography.md` — абстрактный фон под типографику
